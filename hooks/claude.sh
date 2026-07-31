@@ -17,7 +17,7 @@ subagent_event="$(printf '%s\n' "$result" | sed -n '2p')"
 # every event (including no-ops) with its parse result.
 trace_file="$(tmux show-options -gv @agent_bar_trace 2>/dev/null || true)"
 if [ -n "$trace_file" ]; then
-  printf '%s pane=%s state=%s sub=%s payload=%.200s\n' \
+  printf '%s pane=%s state=%s sub=%s payload=%s\n' \
     "$(date '+%Y-%m-%dT%H:%M:%S')" "${TMUX_PANE:-none}" "$state" \
     "$subagent_event" "$HOOK_PAYLOAD" >> "$trace_file" 2>/dev/null || true
 fi
