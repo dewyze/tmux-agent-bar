@@ -58,3 +58,27 @@ assert_contains "$out" "? home:notes" "second badge label"
 tmux_t set-option -p -t "$plain_pane" @agent_state running
 tmux_t select-pane -t "$agent_pane"
 assert_contains "$(render)" "#[range=user|$plain_pane]" "non-active pane badge"
+
+# Pane title: shown (truncated) when an app or user set one; the default
+# hostname title is noise and stays hidden.
+tmux_t set-option -p -t "$plain_pane" @agent_state idle
+tmux_t select-pane -T "fixing the tests" -t "$agent_pane"
+assert_contains "$(render)" "work:api fixing the tests" "set pane title shown"
+assert_not_contains "$(render)" "$(hostname)" "default hostname title hidden"
+
+# Session prefix only when foreign: with no client every session is foreign
+# (asserted above via work:api); with a client attached to work, work drops
+# the prefix and home keeps it.
+exec 9> >(command tmux -L "$SOCKET" -f /dev/null -C attach -t work >/dev/null 2>&1)
+client=""
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  client="$(tmux_t list-clients -F '#{client_name}' 2>/dev/null | head -1)"
+  [ -n "$client" ] && break
+  sleep 0.2
+done
+[ -n "$client" ] || fail "control client never attached"
+attached="$(tmux_t display-message -p -c "$client" "$format")"
+exec 9>&-
+assert_contains "$attached" "api fixing the tests" "local badge keeps window name"
+assert_not_contains "$attached" "work:api" "local session prefix hidden"
+assert_contains "$attached" "? home:notes" "foreign session prefix kept"

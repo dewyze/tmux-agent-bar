@@ -10,7 +10,13 @@ set -u
 # to avoid breaking the surrounding #{?...} alternatives.
 state_mark='#{?#{==:#{@agent_state},needs-input},#[fg=yellow bold]?,#{?#{==:#{@agent_state},error},#[fg=red bold]!,#{?#{==:#{@agent_state},done},#[fg=green]+,#{?#{==:#{@agent_state},subagent-running},#[fg=cyan]**,#[fg=cyan]*}}}}'
 
-badge="#[range=user|#{pane_id}]${state_mark} #{session_name}:#{window_name}#[default]#[norange]  "
+# Label: window name; pane title appended (truncated) when something set one
+# (the default title is the hostname — noise); session prefix only when the
+# pane lives outside the viewing client's session.
+session_prefix='#{?#{!=:#{session_name},#{client_session}},#{session_name}:,}'
+title_suffix='#{?#{&&:#{pane_title},#{!=:#{pane_title},#{host}}}, #{=24:pane_title},}'
+
+badge="#[range=user|#{pane_id}]${state_mark} ${session_prefix}#{window_name}${title_suffix}#[default]#[norange]  "
 
 visible="#{?#{&&:#{@agent_state},#{!=:#{@agent_state},idle}},${badge},}"
 
