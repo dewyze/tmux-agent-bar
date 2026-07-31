@@ -28,6 +28,14 @@ bash "$ROOT_DIR/agent-bar.tmux"
 
 state() { tmux_t show-options -pv -t "$1" @agent_state 2>/dev/null; }
 
+# pane_b plays the agent: it must genuinely show a prompt on screen, or
+# needs-input verification (correctly) clears its badge as stale.
+tmux_t send-keys -t "$pane_b" "clear; printf 'Do you want to proceed?\\n  1. Yes\\n'" Enter
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  tmux_t capture-pane -p -t "$pane_b" | grep -q "Do you want" && break
+  sleep 0.25
+done
+
 # needs-input is truthful state: the pane still wants input, so visiting
 # it must NOT clear the badge (only answering the prompt does, via events)
 tmux_t select-pane -t "$pane_a"

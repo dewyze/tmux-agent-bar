@@ -31,6 +31,11 @@ tmux bind-key -n MouseDown3Status if-shell -F "$guard" \
 # commands themselves, unlike pane-focus-in which needs terminal focus
 # events. Array indices keep clear of user-defined hooks on the same events.
 acknowledge='if-shell -F "#{==:#{@agent_state},done}" "set-option -p @agent_state idle"'
-tmux set-hook -g 'after-select-pane[181]' "$acknowledge"
-tmux set-hook -g 'after-select-window[182]' "$acknowledge"
-tmux set-hook -g 'client-session-changed[183]' "$acknowledge"
+# Denials emit no hook event, so needs-input badges are re-verified against
+# the pane's actual screen on navigation — but only when one exists (the
+# format guard keeps steady-state navigation free of process spawns).
+any_needs_input='#{S:#{W:#{P:#{?#{==:#{@agent_state},needs-input},x,}}}}'
+verify="if-shell -F \"$any_needs_input\" \"run-shell -b '$CURRENT_DIR/scripts/verify-needs-input.sh'\""
+tmux set-hook -g 'after-select-pane[181]' "$acknowledge ; $verify"
+tmux set-hook -g 'after-select-window[182]' "$acknowledge ; $verify"
+tmux set-hook -g 'client-session-changed[183]' "$acknowledge ; $verify"
