@@ -12,6 +12,16 @@ resolve_hook_input "$@"
 result="$(HOOK_PAYLOAD="$HOOK_PAYLOAD" python3 "$ROOT_DIR/lib/parse-claude.py" "$HOOK_EVENT_ARG")" || exit 0
 state="$(printf '%s\n' "$result" | sed -n '1p')"
 subagent_event="$(printf '%s\n' "$result" | sed -n '2p')"
+
+# Opt-in diagnostics: `tmux set -g @agent_bar_trace /path/to/log` records
+# every event (including no-ops) with its parse result.
+trace_file="$(tmux show-options -gv @agent_bar_trace 2>/dev/null || true)"
+if [ -n "$trace_file" ]; then
+  printf '%s pane=%s state=%s sub=%s payload=%.200s\n' \
+    "$(date '+%Y-%m-%dT%H:%M:%S')" "${TMUX_PANE:-none}" "$state" \
+    "$subagent_event" "$HOOK_PAYLOAD" >> "$trace_file" 2>/dev/null || true
+fi
+
 [ -n "$state" ] || exit 0
 
 pane="${TMUX_PANE:-}"
