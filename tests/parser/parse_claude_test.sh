@@ -44,6 +44,14 @@ assert_eq "" "$(subagent_of '{"hook_event_name":"Stop"}')" "Stop has no subagent
 assert_eq "running" "$(state_of '{"hook_event_name":"PostToolUse"}')" "PostToolUse state"
 assert_eq "soft" "$(subagent_of '{"hook_event_name":"PostToolUse"}')" "PostToolUse soft marker"
 
+# Tool failures and denials also mean Claude is processing again — the
+# truthful exit from needs-input whichever way the prompt was answered.
+# Soft running, NOT error: routine tool failures happen mid-run constantly.
+assert_eq "running" "$(state_of '{"hook_event_name":"PostToolUseFailure"}')" "PostToolUseFailure state"
+assert_eq "soft" "$(subagent_of '{"hook_event_name":"PostToolUseFailure"}')" "PostToolUseFailure soft"
+assert_eq "running" "$(state_of '{"hook_event_name":"PermissionDenied"}')" "PermissionDenied state"
+assert_eq "soft" "$(subagent_of '{"hook_event_name":"PermissionDenied"}')" "PermissionDenied soft"
+
 # Unknown or malformed input -> empty output, exit 0 (hook becomes a no-op)
 assert_eq "" "$(parse '{"hook_event_name":"PreToolUse"}')" "unknown event"
 assert_eq "" "$(parse 'not json')" "malformed payload"
