@@ -24,3 +24,12 @@ tmux bind-key -n MouseDown1Status if-shell -F "$guard" \
 
 tmux bind-key -n MouseDown3Status if-shell -F "$guard" \
   "run-shell \"$CURRENT_DIR/scripts/menu.sh '#{mouse_status_range}' '#{mouse_x}' '#{mouse_y}'\""
+
+# Navigating to an agent pane acknowledges it: needs-input/done clear to
+# idle; running/error persist. Navigation hooks fire on the commands
+# themselves, unlike pane-focus-in which needs terminal focus events.
+# Array indices keep clear of user-defined hooks on the same events.
+acknowledge='if-shell -F "#{||:#{==:#{@agent_state},needs-input},#{==:#{@agent_state},done}}" "set-option -p @agent_state idle"'
+tmux set-hook -g 'after-select-pane[181]' "$acknowledge"
+tmux set-hook -g 'after-select-window[182]' "$acknowledge"
+tmux set-hook -g 'client-session-changed[183]' "$acknowledge"
