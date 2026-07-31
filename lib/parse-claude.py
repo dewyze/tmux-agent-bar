@@ -14,10 +14,18 @@ import os
 import sys
 
 
-# Progress/completion notifications that must not touch state; every other
-# non-idle_prompt type (permission_prompt, agent_needs_input, ...) is an
-# attention request and falls through to needs-input.
-IGNORED_NOTIFICATIONS = {"auth_success", "elicitation_complete", "elicitation_response", "agent_completed"}
+# Notifications that must not touch state. idle_prompt fires every ~60s while
+# Claude waits for input — including while a permission prompt is pending, so
+# mapping it to any state would erase a live needs-input badge. Every other
+# type (permission_prompt, agent_needs_input, ...) is an attention request and
+# falls through to needs-input.
+IGNORED_NOTIFICATIONS = {
+    "idle_prompt",
+    "auth_success",
+    "elicitation_complete",
+    "elicitation_response",
+    "agent_completed",
+}
 
 
 def payload():
@@ -51,8 +59,6 @@ def parse(data):
         return "running", "stop"
     if event == "Notification":
         notification_type = str(data.get("notification_type", ""))
-        if notification_type == "idle_prompt":
-            return "idle", ""
         if notification_type in IGNORED_NOTIFICATIONS:
             return "", ""
         # Untyped and unknown-typed notifications are attention requests.

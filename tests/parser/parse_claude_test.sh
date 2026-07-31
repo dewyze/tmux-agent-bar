@@ -15,8 +15,10 @@ assert_eq "idle" "$(state_of '{"hook_event_name":"SessionEnd"}')" "SessionEnd"
 assert_eq "running" "$(state_of '{"hook_event_name":"UserPromptSubmit"}')" "UserPromptSubmit"
 assert_eq "done" "$(state_of '{"hook_event_name":"Stop"}')" "Stop"
 
-# Notifications: the idle_prompt nudge must NOT read as needs-input
-assert_eq "idle" "$(state_of '{"hook_event_name":"Notification","notification_type":"idle_prompt"}')" "idle_prompt"
+# The idle_prompt nudge fires every ~60s while Claude waits for input —
+# including while a permission prompt is pending. It must write NOTHING:
+# mapping it to idle erases a live needs-input badge.
+assert_eq "" "$(parse '{"hook_event_name":"Notification","notification_type":"idle_prompt"}')" "idle_prompt is a no-op"
 assert_eq "needs-input" "$(state_of '{"hook_event_name":"Notification","notification_type":"permission_prompt"}')" "permission_prompt"
 assert_eq "needs-input" "$(state_of '{"hook_event_name":"Notification","notification_type":"agent_needs_input"}')" "agent_needs_input"
 assert_eq "needs-input" "$(state_of '{"hook_event_name":"Notification","message":"Claude needs your permission to use Bash"}')" "untyped notification"

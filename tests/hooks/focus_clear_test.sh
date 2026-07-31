@@ -60,3 +60,15 @@ assert_eq "idle" "$(state "$done_pane")" "done clears on select-window"
 # A pane with no agent state is untouched (no spurious idle writes)
 tmux_t select-pane -t "$pane_a"
 assert_eq "" "$(state "$pane_a")" "stateless pane stays stateless"
+
+# Navigating AWAY from an agent pane must never clear it: only visiting
+# the pane itself acknowledges the badge.
+tmux_t select-pane -t "$pane_b"
+tmux_t set-option -p -t "$pane_b" @agent_state needs-input
+tmux_t select-pane -t "$pane_a"
+assert_eq "needs-input" "$(state "$pane_b")" "select-pane away keeps badge"
+tmux_t select-window -t work:db
+assert_eq "needs-input" "$(state "$pane_b")" "select-window away keeps badge"
+tmux_t new-session -d -s other -x 80 -y 24
+tmux_t switch-client -t other 2>/dev/null || true
+assert_eq "needs-input" "$(state "$pane_b")" "session switch keeps badge"
