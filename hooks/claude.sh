@@ -36,7 +36,15 @@ case "$subagent_event" in
     state="subagent-running"
     ;;
   stop)
-    [ "$count" -gt 0 ] && count=$((count - 1))
+    # A stop with nothing running is a stale event (e.g. a background agent
+    # finishing after Stop already wrote done) — writing would lie.
+    [ "$count" -gt 0 ] || exit 0
+    count=$((count - 1))
+    if [ "$count" -gt 0 ]; then
+      state="subagent-running"
+    fi
+    ;;
+  soft)
     if [ "$count" -gt 0 ]; then
       state="subagent-running"
     fi

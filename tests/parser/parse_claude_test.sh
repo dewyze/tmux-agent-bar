@@ -39,6 +39,11 @@ assert_eq "running" "$(state_of '{"hook_event_name":"SubagentStop"}')" "Subagent
 assert_eq "stop" "$(subagent_of '{"hook_event_name":"SubagentStop"}')" "SubagentStop event"
 assert_eq "" "$(subagent_of '{"hook_event_name":"Stop"}')" "Stop has no subagent event"
 
+# PostToolUse means work is executing: running, but "soft" — it must not
+# stomp subagent bookkeeping (it fires constantly during subagent turns).
+assert_eq "running" "$(state_of '{"hook_event_name":"PostToolUse"}')" "PostToolUse state"
+assert_eq "soft" "$(subagent_of '{"hook_event_name":"PostToolUse"}')" "PostToolUse soft marker"
+
 # Unknown or malformed input -> empty output, exit 0 (hook becomes a no-op)
 assert_eq "" "$(parse '{"hook_event_name":"PreToolUse"}')" "unknown event"
 assert_eq "" "$(parse 'not json')" "malformed payload"

@@ -28,21 +28,22 @@ bash "$ROOT_DIR/agent-bar.tmux"
 
 state() { tmux_t show-options -pv -t "$1" @agent_state 2>/dev/null; }
 
-# needs-input on the unfocused pane survives until we select it
+# needs-input is truthful state: the pane still wants input, so visiting
+# it must NOT clear the badge (only answering the prompt does, via events)
 tmux_t select-pane -t "$pane_a"
 tmux_t set-option -p -t "$pane_b" @agent_state needs-input
 assert_eq "needs-input" "$(state "$pane_b")" "state persists while unfocused"
 tmux_t select-pane -t "$pane_b"
-assert_eq "idle" "$(state "$pane_b")" "needs-input clears on select-pane"
+assert_eq "needs-input" "$(state "$pane_b")" "needs-input survives focus"
 
-# done clears the same way
+# done is an attention flag with no residual truth: visiting clears it
 tmux_t select-pane -t "$pane_a"
 tmux_t set-option -p -t "$pane_b" @agent_state done
 tmux_t select-pane -t "$pane_b"
 assert_eq "idle" "$(state "$pane_b")" "done clears on select-pane"
 
-# running and error persist through navigation
-for persistent in running error; do
+# running, error, and needs-input persist through navigation
+for persistent in running error needs-input; do
   tmux_t select-pane -t "$pane_a"
   tmux_t set-option -p -t "$pane_b" @agent_state "$persistent"
   tmux_t select-pane -t "$pane_b"

@@ -53,6 +53,11 @@ def parse(data):
         return "idle", ""
     if event == "UserPromptSubmit":
         return "running", ""
+    if event == "PostToolUse":
+        # Work is executing — including right after an approved permission,
+        # which is the truthful exit from needs-input. "soft" because this
+        # fires during subagent turns and must not disturb their bookkeeping.
+        return "running", "soft"
     if event == "SubagentStart":
         return "running", "start"
     if event == "SubagentStop":

@@ -76,6 +76,21 @@ printf '2' > "$COUNT_FILE"
 run_hook '{"hook_event_name":"PermissionRequest"}'
 assert_contains "$(log)" "@agent_subagents 2" "needs-input preserves count"
 
+# A stale SubagentStop (count already 0, e.g. a background agent finishing
+# after Stop) must not write anything — it would resurrect a done badge
+printf '0' > "$COUNT_FILE"
+run_hook '{"hook_event_name":"SubagentStop"}'
+assert_not_contains "$(log)" "set-option" "stale SubagentStop is a no-op"
+
+# PostToolUse is soft running: no refcount reset, subagent-running preserved
+printf '2' > "$COUNT_FILE"
+run_hook '{"hook_event_name":"PostToolUse"}'
+assert_contains "$(log)" "@agent_state subagent-running" "soft running respects subagents"
+assert_contains "$(log)" "@agent_subagents 2" "soft running preserves count"
+printf '0' > "$COUNT_FILE"
+run_hook '{"hook_event_name":"PostToolUse"}'
+assert_contains "$(log)" "@agent_state running" "soft running plain when no subagents"
+
 # Garbage count from tmux is treated as 0
 printf 'junk' > "$COUNT_FILE"
 run_hook '{"hook_event_name":"SubagentStart"}'
