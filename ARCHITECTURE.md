@@ -49,8 +49,12 @@ Key properties:
   itself or a short-lived process spawned by an event (hook fire, navigation
   with a `?` present, a click).
 - **Clearing requires positive evidence.** `needs-input` falls only to a
-  transcript entry newer than the badge; `done` falls to being seen.
-  Failure modes (no transcript, unreadable, foreign agent) keep the badge.
+  conversation entry (`user`/`assistant`, non-meta) newer than the badge;
+  `done` falls to being seen. Every failure mode keeps the badge — no
+  transcript recorded, unreadable/rotated file, foreign agent, an answer
+  buried beyond the 64KB tail window. Accepted consequence: those cases can
+  pin a stale `?` until the next hook event or a manual menu-clear; we trade
+  that for never clearing a live prompt.
 - **The schema is the API.** Any producer can put a pane on the bar with
   one `tmux set-option -p` — no IPC, no daemon, no registration.
 
@@ -77,13 +81,18 @@ Rules that keep the layering honest:
 2. The state machine (refcount, reset guard, stale-stop guard) lives in the
    writer, keyed by parser markers (`start`/`stop`/`soft`) — parsers know
    *what happened*, the writer knows *what it means for stored state*.
-   (Known debt: when a second harness exists, this logic moves to
-   `lib/hook-lib.sh` so it isn't copy-pasted.)
+   Known debt, both honest: (a) when a second harness exists, this logic
+   moves to `lib/hook-lib.sh` so it isn't copy-pasted; (b) the refcount is a
+   read-modify-write across two tmux invocations under async hooks — the one
+   race in the system. Two simultaneous SubagentStarts can under-count; the
+   reset guard makes it self-healing rather than sticky.
 3. The view never computes: no counts, no sorting, no time math. The standing
    budget for `#()` helpers in the format is **one**, currently unspent.
 4. Only the composition root claims shared tmux resources (format slot,
-   hook indices 181–183, mouse bindings), so install/uninstall is one file's
-   concern.
+   hook indices 181–183, mouse bindings), so installing is one file's
+   concern. (Uninstall on the tmux side does not exist yet — removing the
+   repo leaves hooks 181–183 firing at dead paths until server restart.
+   Open finding, not a property.)
 
 ## Testing model
 

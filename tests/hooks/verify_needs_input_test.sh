@@ -75,6 +75,31 @@ set_badge "$pane" "$TEST_TMP/garbage.jsonl"
 verify
 assert_eq "needs-input" "$(state "$pane")" "malformed transcript keeps badge"
 
+# Non-answer transcript writes are NOT evidence: checkpoints, hook logs,
+# and meta/sidechain entries land during a wait without answering it
+transcript "$TEST_TMP/noise.jsonl" "assistant:$((NOW - 30))" "file-history-delta:$((NOW + 30))" "system:$((NOW + 40))"
+set_badge "$pane" "$TEST_TMP/noise.jsonl"
+verify
+assert_eq "needs-input" "$(state "$pane")" "system noise keeps badge"
+
+transcript "$TEST_TMP/meta.jsonl" "assistant:$((NOW - 30))"
+printf '{"type":"user","isMeta":true,"timestamp":"%s"}\n' "$(iso $((NOW + 30)))" >> "$TEST_TMP/meta.jsonl"
+set_badge "$pane" "$TEST_TMP/meta.jsonl"
+verify
+assert_eq "needs-input" "$(state "$pane")" "meta entry keeps badge"
+
+# ...but a real user entry above trailing noise still clears
+transcript "$TEST_TMP/answered_noisy.jsonl" "user:$((NOW + 30))" "system:$((NOW + 40))"
+set_badge "$pane" "$TEST_TMP/answered_noisy.jsonl"
+verify
+assert_eq "idle" "$(state "$pane")" "user answer beneath noise clears badge"
+
+# A FIFO masquerading as a transcript must not hang verification
+mkfifo "$TEST_TMP/fifo.jsonl"
+set_badge "$pane" "$TEST_TMP/fifo.jsonl"
+verify
+assert_eq "needs-input" "$(state "$pane")" "non-regular file keeps badge"
+
 # A trailing malformed line must not hide real progress above it
 transcript "$TEST_TMP/trailing.jsonl" "user:$((NOW + 30))"
 printf '{"partial\n' >> "$TEST_TMP/trailing.jsonl"
