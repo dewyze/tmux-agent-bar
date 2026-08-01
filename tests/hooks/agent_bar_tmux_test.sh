@@ -29,21 +29,24 @@ run_plugin "on"
 log="$(cat "$STUB_LOG")"
 assert_contains "$log" "set-option -g status 2" "status raised to 2"
 assert_contains "$log" "set-option -g status-format[1] #{S:#{W:" "bar format installed"
-assert_contains "$log" "bind-key -n MouseDown1Status" "left-click bound"
-assert_contains "$log" "bind-key -n MouseDown3Status" "right-click bound"
-assert_contains "$log" "mouse_status_line" "bindings guard on status line"
-assert_contains "$log" "mouse_status_range" "bindings read clicked range"
-assert_contains "$log" "jump.sh" "left-click jumps"
-
-# The menu opens directly in the binding so it keeps the live mouse event:
-# -x M -y M positions at the click, and tmux's native menu handles both
-# hold-release and click-to-stay. A run-shell detour loses both.
-assert_contains "$log" "display-menu" "right-click opens menu directly"
-assert_contains "$log" "-x M -y M" "menu positioned at mouse"
-assert_not_contains "$log" "menu.sh" "no run-shell detour for the menu"
-assert_contains "$log" "kill-pane -t '#{mouse_status_range}'" "kill targets clicked pane"
-assert_contains "$log" "confirm-before" "kill is confirmed"
-assert_contains "$log" "@agent_state idle" "clear item present"
+# Mouse bindings are generated as a tmux conf fragment (native {} quoting)
+# and sourced; non-badge clicks must fall through to replayed tmux defaults.
+assert_contains "$log" "source-file" "bindings fragment sourced"
+bindings="$ROOT_DIR/.bindings.generated.conf"
+[ -f "$bindings" ] || fail "bindings fragment not generated"
+b="$(cat "$bindings")"
+assert_contains "$b" "MouseDown1Status" "left-click bound"
+assert_contains "$b" "MouseDown3Status" "right-click bound"
+assert_contains "$b" "mouse_status_line" "guard on status line"
+assert_contains "$b" "jump.sh" "left-click jumps"
+assert_contains "$b" "switch-client -t=" "left-click default replayed"
+assert_contains "$b" "display-menu" "right-click opens menu directly"
+assert_contains "$b" "-x M -y M" "agent menu at mouse"
+assert_contains "$b" "kill-pane -t '#{mouse_status_range}'" "kill targets clicked pane"
+assert_contains "$b" "confirm-before" "kill is confirmed"
+assert_contains "$b" "@agent_state idle" "clear item present"
+assert_contains "$b" "swap-window -t:-1" "default window menu replayed"
+assert_contains "$b" "New At End" "default window menu complete"
 
 # status off is treated the same as on: the bar needs two lines
 run_plugin "off"

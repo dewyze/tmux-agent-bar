@@ -18,24 +18,47 @@ esac
 
 tmux set-option -g "status-format[$line]" "$(bash "$CURRENT_DIR/lib/bar-format.sh")"
 
-# Badge clicks only: the bar's line and a range naming a pane id. Everything
-# else falls through to whatever the user has bound.
-guard="#{&&:#{==:#{mouse_status_line},$line},#{m/r:^%[0-9]+\$,#{mouse_status_range}}}"
-
-tmux bind-key -n MouseDown1Status if-shell -F "$guard" \
-  "run-shell \"$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'\""
-
-# The menu must open inside the binding, keeping the live mouse event:
-# -x M -y M positions at the click, and tmux's native menu then supports
-# both press-drag-release selection and click-then-choose. Routing through
-# run-shell loses the event (menu lands at the top edge and dies on button
-# release). Formats in the items expand when the menu opens, mouse valid.
-tmux bind-key -n MouseDown3Status if-shell -F "$guard" \
-  "display-menu -T 'Agent #{mouse_status_range}' -x M -y M \
-    'Jump' j \"run-shell \\\"$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'\\\"\" \
-    'Clear status' c \"set-option -p -t '#{mouse_status_range}' @agent_state idle\" \
-    '' \
-    'Kill pane' x \"confirm-before -p 'Kill pane #{mouse_status_range}? (y/n)' \\\"kill-pane -t '#{mouse_status_range}'\\\"\""
+# Mouse bindings. Guards dispatch badge clicks (the bar's line, a range
+# naming a pane id); the else-arms REPLAY tmux's default bindings verbatim
+# (3.7b key-bindings.c) so non-badge status clicks keep working — a plain
+# if-shell with no else eats them silently. Generated as a conf fragment:
+# tmux's native {} quoting beats bash escaping for the nested menu.
+# @agent_bar_mouse off leaves the mouse keys entirely untouched.
+if [ "$(bar_option mouse on)" != "off" ]; then
+  bindings="$CURRENT_DIR/.bindings.generated.conf"
+  cat > "$bindings" <<EOF
+bind-key -n MouseDown1Status {
+  if-shell -F "#{&&:#{==:#{mouse_status_line},$line},#{m/r:^%[0-9]+\$,#{mouse_status_range}}}" {
+    run-shell "$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'"
+  } {
+    switch-client -t=
+  }
+}
+bind-key -n MouseDown3Status {
+  if-shell -F "#{&&:#{==:#{mouse_status_line},$line},#{m/r:^%[0-9]+\$,#{mouse_status_range}}}" {
+    display-menu -T 'Agent #{mouse_status_range}' -x M -y M \\
+      'Jump' j "run-shell \\"$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'\\"" \\
+      'Clear status' c "set-option -p -t '#{mouse_status_range}' @agent_state idle" \\
+      '' \\
+      'Kill pane' x "confirm-before -p 'Kill pane #{mouse_status_range}? (y/n)' \\"kill-pane -t '#{mouse_status_range}'\\""
+  } {
+    display-menu -t= -xW -yW -T '#[align=centre]#{window_index}:#{window_name}' \\
+      '#{?#{>:#{session_windows},1},,-}Swap Left' 'l' {swap-window -t:-1} \\
+      '#{?#{>:#{session_windows},1},,-}Swap Right' 'r' {swap-window -t:+1} \\
+      '#{?pane_marked_set,,-}Swap Marked' 's' {swap-window} \\
+      '' \\
+      'Kill' 'X' {kill-window} \\
+      'Respawn' 'R' {respawn-window -k} \\
+      '#{?pane_marked,Unmark,Mark}' 'm' {select-pane -m} \\
+      'Rename' 'n' {command-prompt -FI "#W" {rename-window -t '#{window_id}' -- '%%'}} \\
+      '' \\
+      'New After' 'w' {new-window -a} \\
+      'New At End' 'W' {new-window}
+  }
+}
+EOF
+  tmux source-file "$bindings"
+fi
 
 # Navigating to an agent pane acknowledges done (a seen "+" has no residual
 # truth). needs-input persists — the pane still wants input until an event
