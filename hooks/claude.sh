@@ -33,7 +33,8 @@ if [ "$state" = "exit" ]; then
     set-option -pu -t "$pane" @agent_state \; \
     set-option -pu -t "$pane" @agent_subagents \; \
     set-option -pu -t "$pane" @agent_updated \; \
-    set-option -pu -t "$pane" @agent_transcript 2>/dev/null
+    set-option -pu -t "$pane" @agent_transcript \; \
+    set-option -pu -t "$pane" @agent_writer_version 2>/dev/null
   exit 0
 fi
 
@@ -71,7 +72,8 @@ esac
 write=(set-option -p -t "$pane" @agent_app claude
   \; set-option -p -t "$pane" @agent_state "$state"
   \; set-option -p -t "$pane" @agent_subagents "$count"
-  \; set-option -p -t "$pane" @agent_updated "$(date +%s)")
+  \; set-option -p -t "$pane" @agent_updated "$(date +%s)"
+  \; set-option -p -t "$pane" @agent_writer_version "$(cat "$ROOT_DIR/VERSION" 2>/dev/null || printf unknown)")
 if [ -n "$transcript" ]; then
   write+=(\; set-option -p -t "$pane" @agent_transcript "$transcript")
 fi

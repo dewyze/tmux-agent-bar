@@ -21,6 +21,10 @@ plugin = json.load(open(f"{root}/.claude-plugin/plugin.json"))
 assert plugin.get("name") == "tmux-agent-bar", plugin
 assert plugin.get("version"), "plugin.json needs a version"
 
+# VERSION is the single source of truth; plugin.json must agree with it
+version = open(f"{root}/VERSION").read().strip()
+assert plugin["version"] == version, (plugin["version"], version)
+
 market = json.load(open(f"{root}/.claude-plugin/marketplace.json"))
 names = [p.get("name") for p in market.get("plugins", [])]
 assert "tmux-agent-bar" in names, market

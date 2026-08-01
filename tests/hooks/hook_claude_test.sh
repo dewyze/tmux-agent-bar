@@ -34,6 +34,10 @@ assert_contains "$(log)" "set-option -p -t %7 @agent_app claude ; set-option -p 
 assert_contains "$(log)" "@agent_updated " "timestamp written"
 assert_eq "1" "$(grep -c 'set-option' "$STUB_LOG")" "single tmux invocation for writes"
 
+# The writer stamps its version so plugin-copy/checkout skew is observable
+run_hook '{"hook_event_name":"UserPromptSubmit"}'
+assert_contains "$(log)" "@agent_writer_version $(cat "$ROOT_DIR/VERSION")" "writer version stamped"
+
 # transcript_path in the payload is recorded for needs-input verification
 run_hook '{"hook_event_name":"UserPromptSubmit","transcript_path":"/tmp/t.jsonl"}'
 assert_contains "$(log)" "@agent_transcript /tmp/t.jsonl" "transcript recorded"

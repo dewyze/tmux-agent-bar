@@ -50,6 +50,13 @@ Use one path or the other, not both, or every event fires the hook twice.
 Both register the same events (a test enforces it). Hooks load at Claude
 session start; restart sessions (or `/reload-plugins`) after installing.
 
+The plugin path runs hooks from Claude's installed *copy* of this repo,
+while tmux renders from your checkout/TPM clone. The hook stamps
+`@agent_writer_version` on every write so skew between the two is
+observable. After updating either side: `claude plugin update
+tmux-agent-bar`, then `scripts/reset.sh` (clears all agent state and
+reapplies the bar), then restart agent sessions.
+
 The plugin raises `status` to 2 and claims `status-format[1]`. If you already
 run 3+ status lines your `status` value is kept, but line index 1 is still
 taken by the bar.

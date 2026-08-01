@@ -72,7 +72,7 @@ Layered; each layer knows only the one below it.
 | **Verifiers** | `scripts/verify-needs-input.sh`, `lib/transcript-progressed.py` | reconcile stored state against external truth (transcript) | reads + one write |
 | **Interactions** | `scripts/jump.sh`, `scripts/menu.sh` | one action per file, argv pre-validated, no format context | commands |
 | **Composition root** | `agent-bar.tmux` | wires view into `status-format[1]`, binds mouse + navigation hooks; the only file that installs anything | config |
-| **Distribution** | `.claude-plugin/` + `hooks/hooks.json` (plugin path), `scripts/install-claude-hooks.sh` (settings fallback) | register the writer with the harness; both paths must declare identical events (drift-guarded by test) | — |
+| **Distribution** | `.claude-plugin/` + `hooks/hooks.json` (packaged path, primary), `scripts/install-claude-hooks.sh` (settings fallback) | register the writer with the harness; both paths must declare identical events (drift-guarded by test). The packaged writer runs from Claude's copy of the repo, so it stamps `@agent_writer_version` (from `VERSION`) to make copy/checkout skew observable; `scripts/reset.sh` restores a clean state | — |
 
 Rules that keep the layering honest:
 

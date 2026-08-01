@@ -9,6 +9,7 @@ for script in \
   "$ROOT_DIR/hooks/claude.sh" \
   "$ROOT_DIR/scripts/jump.sh" \
   "$ROOT_DIR/scripts/verify-needs-input.sh" \
+  "$ROOT_DIR/scripts/reset.sh" \
   "$ROOT_DIR/scripts/menu.sh" \
   "$ROOT_DIR/scripts/install-claude-hooks.sh"; do
   [ -x "$script" ] || fail "not executable: $script"
