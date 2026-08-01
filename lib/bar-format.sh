@@ -20,10 +20,17 @@ theme="$(bar_option theme ascii)"
 # the heavy one opens each group. Both are visible characters — spaces are
 # not separators. Group separators LEAD their group (like pane separators
 # lead their glyph) so nothing ever dangles at the end of the bar.
+# Powerline glyphs are built from bytes, never source literals: they are
+# private-use-area characters that editors and tooling silently drop (this
+# file once shipped with them replaced by spaces, and a test asserting a
+# vanished literal passed vacuously).
+powerline_thin="$(printf '\xee\x82\xb1')"    # U+E0B1
+powerline_filled="$(printf '\xee\x82\xb0')"  # U+E0B0
+
 case "$theme" in
   nerdfont)
-    default_pane_sep='  '   # U+E0B1 thin powerline divider
-    default_group_sep='  '  # U+E0B0 filled powerline divider
+    default_pane_sep=" ${powerline_thin} "
+    default_group_sep=" ${powerline_filled} "
     ;;
   *)
     default_pane_sep=' │ '

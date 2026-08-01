@@ -45,9 +45,13 @@ tmux_t set-option -g @agent_bar_pane_separator " >> "
 assert_contains "$(shown)" "work/api >> *" "pane separator override"
 tmux_t set-option -gu @agent_bar_pane_separator
 
-# Nerdfont theme swaps in powerline dividers
+# Nerdfont theme swaps in powerline dividers. The glyphs are PUA chars
+# that tooling can silently drop, so build them from bytes and refuse a
+# vacuous empty pattern (this exact test once passed asserting "").
+powerline_thin="$(printf '\xee\x82\xb1')"
+[ -n "$powerline_thin" ] || fail "powerline glyph construction failed"
 tmux_t set-option -g @agent_bar_theme nerdfont
-assert_contains "$(shown)" "" "nerdfont thin divider"
+assert_contains "$(shown)" "$powerline_thin" "nerdfont thin divider"
 assert_not_contains "$(shown)" "│" "ascii divider replaced"
 tmux_t set-option -gu @agent_bar_theme
 
