@@ -53,6 +53,80 @@ if select.select([sys.stdin], [], [], 0.05)[0]:
 '
 }
 
+# The generic harness writer: everything after parsing is identical for
+# every agent. A new harness integration is exactly two files:
+#   lib/parse-<app>.py  — pure: payload in $HOOK_PAYLOAD (+ optional event
+#                         argv) -> 3-line protocol on stdout:
+#                         state, subagent event (start/stop/soft), transcript
+#   hooks/<app>.sh      — three lines: source this file, run_agent_hook <app>
+# Schema stamping, the subagent state machine, exit-unsets, tracing, and
+# batched writes all come from here (see SCHEMA.md for the contract).
+# Always exits 0 so a failure never disturbs the harness.
+run_agent_hook() {
+  local app="$1"
+  shift
+  local lib_dir root_dir
+  lib_dir="$(CDPATH= cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  root_dir="$(CDPATH= cd -- "$lib_dir/.." && pwd)"
+
+  resolve_hook_input "$@"
+
+  local result state subagent_event transcript
+  result="$(HOOK_PAYLOAD="$HOOK_PAYLOAD" python3 "$lib_dir/parse-$app.py" "$HOOK_EVENT_ARG")" || return 0
+  state="$(printf '%s\n' "$result" | sed -n '1p')"
+  subagent_event="$(printf '%s\n' "$result" | sed -n '2p')"
+  transcript="$(printf '%s\n' "$result" | sed -n '3p')"
+
+  # Opt-in diagnostics: `tmux set -g @agent_bar_trace /path/to/log` records
+  # every event (including no-ops) with its parse result.
+  local trace_file
+  trace_file="$(tmux show-options -gv @agent_bar_trace 2>/dev/null || true)"
+  if [ -n "$trace_file" ]; then
+    printf '%s pane=%s state=%s sub=%s payload=%s\n' \
+      "$(date '+%Y-%m-%dT%H:%M:%S')" "${TMUX_PANE:-none}" "$state" \
+      "$subagent_event" "$HOOK_PAYLOAD" >> "$trace_file" 2>/dev/null || true
+  fi
+
+  [ -n "$state" ] || return 0
+
+  local pane="${TMUX_PANE:-}"
+  [[ "$pane" =~ ^%[0-9]+$ ]] || return 0
+
+  if [ "$state" = "exit" ]; then
+    tmux set-option -pu -t "$pane" @agent_app \; \
+      set-option -pu -t "$pane" @agent_state \; \
+      set-option -pu -t "$pane" @agent_subagents \; \
+      set-option -pu -t "$pane" @agent_updated \; \
+      set-option -pu -t "$pane" @agent_transcript \; \
+      set-option -pu -t "$pane" @agent_writer_version \; \
+      set-option -pu -t "$pane" @agent_schema 2>/dev/null
+    return 0
+  fi
+
+  local count resolved
+  count="$(tmux show-options -pv -t "$pane" @agent_subagents 2>/dev/null || true)"
+  [[ "$count" =~ ^[0-9]+$ ]] || count=0
+
+  resolved="$(resolve_agent_state "$state" "$subagent_event" "$count")"
+  [ "$resolved" = "skip" ] && return 0
+  state="${resolved% *}"
+  count="${resolved##* }"
+
+  local write
+  write=(set-option -p -t "$pane" @agent_app "$app"
+    \; set-option -p -t "$pane" @agent_state "$state"
+    \; set-option -p -t "$pane" @agent_subagents "$count"
+    \; set-option -p -t "$pane" @agent_updated "$(date +%s)"
+    \; set-option -p -t "$pane" @agent_writer_version "$(cat "$root_dir/VERSION" 2>/dev/null || printf unknown)"
+    \; set-option -p -t "$pane" @agent_schema 1)
+  if [ -n "$transcript" ]; then
+    write+=(\; set-option -p -t "$pane" @agent_transcript "$transcript")
+  fi
+  tmux "${write[@]}" 2>/dev/null
+
+  return 0
+}
+
 # Populate HOOK_PAYLOAD and HOOK_EVENT_ARG from argv/stdin. Accepts either
 # "event-name" + JSON on stdin, or JSON as an argument (either order).
 resolve_hook_input() {

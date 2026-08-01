@@ -103,18 +103,33 @@ Set options before the plugin loads (re-run `agent-bar.tmux` or
 
 The contract is [SCHEMA.md](SCHEMA.md) — versioned, with producer and
 consumer rules; any script can join the bar with one `set-option`.
-The schema is the contract, not the code. Make your agent's hook mechanism
-write these pane user options on its own lifecycle events and its panes appear
-in the bar:
+For a full integration, the recipe is two files:
+
+1. `lib/parse-<app>.py` — pure: payload in `$HOOK_PAYLOAD` → three lines on
+   stdout: state, subagent event (`start`/`stop`/`soft`/empty), transcript
+   path (or empty). Unknown events print nothing.
+2. `hooks/<app>.sh` — three lines:
+
+   ```sh
+   #!/usr/bin/env bash
+   . "$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)/lib/hook-lib.sh"
+   run_agent_hook <app> "$@"
+   ```
+
+Schema stamping, the subagent state machine, exit-unsets, and tracing all
+come from `run_agent_hook`. Wire your harness to invoke the wrapper on its
+lifecycle events, and its panes appear on the bar.
+`tests/hooks/new_harness_test.sh` is this recipe, executable.
+
+For anything simpler — a build, a deploy — skip the recipe and write the
+options directly per SCHEMA.md:
 
 ```sh
-tmux set-option -p -t "$TMUX_PANE" @agent_app codex \; \
-  set-option -p -t "$TMUX_PANE" @agent_state needs-input \; \
+tmux set-option -p -t "$TMUX_PANE" @agent_schema 1 \; \
+  set-option -p -t "$TMUX_PANE" @agent_app build \; \
+  set-option -p -t "$TMUX_PANE" @agent_state running \; \
   set-option -p -t "$TMUX_PANE" @agent_updated "$(date +%s)"
 ```
-
-Convention: add `hooks/<app>.sh` + `lib/parse-<app>.py` mirroring the Claude
-pair.
 
 ## Development
 

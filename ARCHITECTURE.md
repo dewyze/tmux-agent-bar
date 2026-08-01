@@ -76,8 +76,12 @@ Layered; each layer knows only the one below it.
 
 Rules that keep the layering honest:
 
-1. Parsers are pure functions with a 3-line stdout protocol; adding a harness
-   means adding `lib/parse-<app>.py` + `hooks/<app>.sh` and nothing else.
+1. Parsers are pure functions with a 3-line stdout protocol; adding a
+   harness means adding `lib/parse-<app>.py` plus a 3-line `hooks/<app>.sh`
+   delegating to `run_agent_hook` — schema stamping, the state machine,
+   exit-unsets, and tracing come free. `tests/hooks/new_harness_test.sh`
+   executes this recipe with a fake harness, so "easy to add" is a tested
+   property, not a claim.
 2. The state machine (refcount, reset guard, stale-stop guard) lives in the
    writer, keyed by parser markers (`start`/`stop`/`soft`) — parsers know
    *what happened*, the writer knows *what it means for stored state*.
