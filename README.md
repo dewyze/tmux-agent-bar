@@ -84,11 +84,26 @@ test that verifies the bar actually draws.
 
 ## Roadmap
 
-- Auto-hide the bar when no agents are active
-- More agents: codex, cursor, kiro, opencode, pi
-- Desktop notifications on needs-input
-- Staleness handling for lost Stop events (title cross-check)
-- Aggregate widgets ("3 waiting") via a persistent `#()` helper
-- Nerd-font icon themes
-- A native vertical status line in tmux itself (tmux/tmux#4910) — this bar's
-  format and schema are designed to move there unchanged
+Ranked by expected daily leverage:
+
+1. **Remote approve/deny** — right-click a `?` badge → Approve/Deny items
+   `send-keys` the answer into the prompt; handle permissions from any window
+   without visiting the pane. The badge becomes a control surface.
+2. **Desktop notifications on needs-input** — the hook knows the moment;
+   `terminal-notifier` banner, deep-link click back to the pane.
+3. **Waiting-duration on badges** (`? api 4m`) — `@agent_updated` is already
+   recorded; needs the first persistent `#()` helper (formats can't do
+   now-minus-then).
+4. **Attention-first ordering** — formats can't sort; same `#()` helper as
+   duration.
+5. **Hookless agent detection** — panes running `claude`/`codex` without
+   hooks installed still get a dim badge via command-name heuristics.
+6. **More agents** — codex, cursor, kiro, opencode, pi via the pane-option
+   contract.
+7. **Colors/icons pass** — current palette is placeholder; nerd-font themes.
+8. **Upstream: `PermissionResolved` hook event in Claude Code** — denials
+   emit no event today; this would delete `verify-needs-input.sh`.
+9. **A native vertical status line in tmux itself** (tmux/tmux#4910) — this
+   bar's format and schema are designed to move there unchanged.
+
+Dropped: auto-hide when empty (idle badges mean the bar is never empty).
