@@ -77,6 +77,8 @@ lost SubagentStop can't stick), `needs-input`, `done`, `error`, `idle`
 
 ## Adding another agent
 
+The contract is [SCHEMA.md](SCHEMA.md) — versioned, with producer and
+consumer rules; any script can join the bar with one `set-option`.
 The schema is the contract, not the code. Make your agent's hook mechanism
 write these pane user options on its own lifecycle events and its panes appear
 in the bar:

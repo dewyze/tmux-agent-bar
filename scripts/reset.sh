@@ -9,7 +9,7 @@ set -u
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 
-OPTIONS="@agent_app @agent_state @agent_subagents @agent_updated @agent_transcript @agent_writer_version"
+OPTIONS="@agent_app @agent_state @agent_subagents @agent_updated @agent_transcript @agent_writer_version @agent_schema"
 
 tmux list-panes -a -F '#{pane_id}' 2>/dev/null | while IFS= read -r pane; do
   for option in $OPTIONS; do

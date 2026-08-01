@@ -64,7 +64,7 @@ Layered; each layer knows only the one below it.
 
 | Layer | Files | Responsibility | May touch tmux? |
 |---|---|---|---|
-| **Contract** | README schema section (future `SCHEMA.md`) | `@agent_*` names, state vocabulary, who writes/clears what | — |
+| **Contract** | `SCHEMA.md` (versioned: `@agent_schema 1`) | `@agent_*` names, state vocabulary, producer/consumer rules | — |
 | **Parsers** (pure) | `lib/parse-claude.py` | harness payload → `(state, subagent_event, transcript)`; one file per harness, no side effects, no tmux | never |
 | **Writer** | `hooks/claude.sh`, `lib/hook-lib.sh` | stdin/argv plumbing, pane identity (`TMUX_PANE`), subagent refcount state machine, batched option writes, trace | writes options |
 | **Store** | tmux server (pane user options) | the entire runtime state | is tmux |
@@ -81,10 +81,11 @@ Rules that keep the layering honest:
 2. The state machine (refcount, reset guard, stale-stop guard) lives in the
    writer, keyed by parser markers (`start`/`stop`/`soft`) — parsers know
    *what happened*, the writer knows *what it means for stored state*.
-   Known debt, both honest: (a) when a second harness exists, this logic
-   moves to `lib/hook-lib.sh` so it isn't copy-pasted; (b) the refcount is a
+   The machine lives in `lib/hook-lib.sh` (`resolve_agent_state`), pure
+   and unit-tested — new harnesses share it and only add a parser.
+   Known debt, honest: the refcount is a
    read-modify-write across two tmux invocations under async hooks — the one
-   race in the system. Two simultaneous SubagentStarts can under-count; the
+   race in the system (accepted; empirically self-heals). Two simultaneous SubagentStarts can under-count; the
    reset guard makes it self-healing rather than sticky.
 3. The view never computes: no counts, no sorting, no time math. The standing
    budget for `#()` helpers in the format is **one**, currently unspent.

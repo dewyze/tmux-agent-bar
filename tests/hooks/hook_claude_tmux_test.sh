@@ -33,6 +33,7 @@ option() { tmux_t show-options -pv -t "$pane" "$1" 2>/dev/null; }
 run_hook '{"hook_event_name":"UserPromptSubmit"}'
 assert_eq "running" "$(option @agent_state)" "running"
 assert_eq "claude" "$(option @agent_app)" "app"
+assert_eq "1" "$(option @agent_schema)" "schema version"
 
 run_hook '{"hook_event_name":"Notification","notification_type":"permission_prompt"}'
 assert_eq "needs-input" "$(option @agent_state)" "needs-input"

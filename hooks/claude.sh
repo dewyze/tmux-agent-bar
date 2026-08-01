@@ -34,46 +34,25 @@ if [ "$state" = "exit" ]; then
     set-option -pu -t "$pane" @agent_subagents \; \
     set-option -pu -t "$pane" @agent_updated \; \
     set-option -pu -t "$pane" @agent_transcript \; \
-    set-option -pu -t "$pane" @agent_writer_version 2>/dev/null
+    set-option -pu -t "$pane" @agent_writer_version \; \
+    set-option -pu -t "$pane" @agent_schema 2>/dev/null
   exit 0
 fi
 
 count="$(tmux show-options -pv -t "$pane" @agent_subagents 2>/dev/null || true)"
 [[ "$count" =~ ^[0-9]+$ ]] || count=0
 
-case "$subagent_event" in
-  start)
-    count=$((count + 1))
-    state="subagent-running"
-    ;;
-  stop)
-    # A stop with nothing running is a stale event (e.g. a background agent
-    # finishing after Stop already wrote done) — writing would lie.
-    [ "$count" -gt 0 ] || exit 0
-    count=$((count - 1))
-    if [ "$count" -gt 0 ]; then
-      state="subagent-running"
-    fi
-    ;;
-  soft)
-    if [ "$count" -gt 0 ]; then
-      state="subagent-running"
-    fi
-    ;;
-  *)
-    # Reset guard: a lost SubagentStop must not pin the pane at
-    # subagent-running forever, so terminal events drain the refcount.
-    case "$state" in
-      running|done|idle) count=0 ;;
-    esac
-    ;;
-esac
+resolved="$(resolve_agent_state "$state" "$subagent_event" "$count")"
+[ "$resolved" = "skip" ] && exit 0
+state="${resolved% *}"
+count="${resolved##* }"
 
 write=(set-option -p -t "$pane" @agent_app claude
   \; set-option -p -t "$pane" @agent_state "$state"
   \; set-option -p -t "$pane" @agent_subagents "$count"
   \; set-option -p -t "$pane" @agent_updated "$(date +%s)"
-  \; set-option -p -t "$pane" @agent_writer_version "$(cat "$ROOT_DIR/VERSION" 2>/dev/null || printf unknown)")
+  \; set-option -p -t "$pane" @agent_writer_version "$(cat "$ROOT_DIR/VERSION" 2>/dev/null || printf unknown)"
+  \; set-option -p -t "$pane" @agent_schema 1)
 if [ -n "$transcript" ]; then
   write+=(\; set-option -p -t "$pane" @agent_transcript "$transcript")
 fi

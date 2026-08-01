@@ -37,6 +37,7 @@ assert_eq "1" "$(grep -c 'set-option' "$STUB_LOG")" "single tmux invocation for 
 # The writer stamps its version so plugin-copy/checkout skew is observable
 run_hook '{"hook_event_name":"UserPromptSubmit"}'
 assert_contains "$(log)" "@agent_writer_version $(cat "$ROOT_DIR/VERSION")" "writer version stamped"
+assert_contains "$(log)" "@agent_schema 1" "schema version stamped"
 
 # transcript_path in the payload is recorded for needs-input verification
 run_hook '{"hook_event_name":"UserPromptSubmit","transcript_path":"/tmp/t.jsonl"}'
@@ -112,6 +113,7 @@ assert_contains "$(log)" "set-option -pu -t %7 @agent_state" "exit unsets state"
 assert_contains "$(log)" "set-option -pu -t %7 @agent_app" "exit unsets app"
 assert_contains "$(log)" "set-option -pu -t %7 @agent_transcript" "exit unsets transcript"
 assert_not_contains "$(log)" "@agent_state exit" "exit is not written as a state"
+assert_contains "$(log)" "set-option -pu -t %7 @agent_schema" "exit unsets schema"
 
 # Tracing: @agent_bar_trace names a log file; every event appends one line
 # with the payload and the parse result, including no-op events.

@@ -32,7 +32,7 @@ tmux_t set-option -p -t "$pane_b" @agent_state running
 
 bash "$ROOT_DIR/scripts/reset.sh" >/dev/null
 
-for opt in @agent_state @agent_app @agent_transcript @agent_writer_version; do
+for opt in @agent_state @agent_app @agent_transcript @agent_writer_version @agent_schema; do
   assert_eq "" "$(tmux_t show-options -pv -t "$pane_a" "$opt" 2>/dev/null)" "$opt cleared on pane_a"
 done
 assert_eq "" "$(tmux_t show-options -pv -t "$pane_b" @agent_state 2>/dev/null)" "@agent_state cleared on pane_b"
