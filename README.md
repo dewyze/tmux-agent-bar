@@ -8,15 +8,20 @@ the bar immediately.
 
 ```
 [0] 0:vim  1:api*                                          14:23
-* work:api   ? work:db   + home:notes
+║ win1 │ * fixing tests │ ? review auth ║ win2 │ ·  ║ blog/api │ +
 ```
 
-`*` running · `**` subagent running · `?` needs input · `!` error · `+` done
+`*` running · `**` subagent running · `?` needs input · `!` error ·
+`+` done · `·` idle (alive, waiting). A badge disappears only when its
+agent exits. Agents group under one window label; foreign sessions
+prefix `session/`.
 
 - **Left-click** a badge: jump to that pane (session, window, pane).
-- **Right-click**: menu — jump, clear status, kill pane.
-- **Navigate to an agent's pane**: acknowledges it (`needs-input`/`done` clear
-  to idle; `running`/`error` persist).
+- **Right-click**: menu at the click — jump, clear status, kill pane.
+  Non-badge status clicks fall through to tmux's defaults.
+- **Navigate to an agent's pane**: acknowledges `+` (clears to `·`).
+  `?` is truthful state — it persists until the prompt is actually
+  answered (event- or transcript-verified).
 
 ## Requirements
 
@@ -73,7 +78,26 @@ Claude Code hook event (JSON on stdin)
 
 States: `running`, `subagent-running` (refcounted, with a reset guard so a
 lost SubagentStop can't stick), `needs-input`, `done`, `error`, `idle`
-(invisible). Pane options die with the pane, so cleanup is automatic.
+(dim — a live agent waiting). Unset means gone; pane options die with the
+pane, so cleanup is automatic. Full contract: [SCHEMA.md](SCHEMA.md).
+
+## Configuration
+
+Set options before the plugin loads (re-run `agent-bar.tmux` or
+`scripts/reset.sh` to apply changes):
+
+| Option | Default | |
+|---|---|---|
+| `@agent_bar_theme` | `ascii` | `nerdfont` uses powerline dividers |
+| `@agent_bar_line` | `1` | which status line the bar claims |
+| `@agent_bar_mouse` | `on` | `off` leaves mouse keys entirely untouched |
+| `@agent_bar_pane_separator` | ` │ ` | between agents in a group |
+| `@agent_bar_group_separator` | ` ║ ` | opens each window group |
+| `@agent_bar_label_suffix` | *(empty)* | e.g. `:` for colon grammar |
+| `@agent_bar_session_separator` | `/` | foreign-session prefix joiner |
+| `@agent_bar_title_max` | `24` | pane-title truncation; `0` hides titles |
+| `@agent_bar_glyph_<state>` | `* ** ? + ! ·` | per-state glyph overrides |
+| `@agent_bar_trace` | *(unset)* | file path enables hook event tracing |
 
 ## Adding another agent
 
