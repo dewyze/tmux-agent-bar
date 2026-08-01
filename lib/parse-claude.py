@@ -84,10 +84,12 @@ def parse(data):
 
 
 def main():
-    state, subagent_event = parse(payload())
+    data = payload()
+    state, subagent_event = parse(data)
     if state:
         print(state)
         print(subagent_event)
+        print(str(data.get("transcript_path", "")))
 
 
 if __name__ == "__main__":

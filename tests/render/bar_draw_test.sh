@@ -23,7 +23,7 @@ tmux_o new-session -d -x 90 -y 24
 tmux_o send-keys "exec tmux -L '$INNER' attach" Enter
 
 captured=""
-for _ in 1 2 3 4 5 6 7 8 9 10; do
+for _ in $(seq 1 24); do
   sleep 0.5
   captured="$(tmux_o capture-pane -p)"
   case "$captured" in *"? api"*) break ;; esac
@@ -34,7 +34,7 @@ assert_contains "$captured" "? api" "badge drawn on status line"
 # State change redraws without any explicit refresh
 tmux_i set-option -p -t "$pane" @agent_state done
 updated=""
-for _ in 1 2 3 4 5 6 7 8 9 10; do
+for _ in $(seq 1 24); do
   sleep 0.5
   updated="$(tmux_o capture-pane -p)"
   case "$updated" in *"+ api"*) break ;; esac

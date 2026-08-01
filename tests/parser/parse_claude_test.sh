@@ -8,6 +8,7 @@ parse() {
 
 state_of() { parse "$1" "${2:-}" | sed -n '1p'; }
 subagent_of() { parse "$1" "${2:-}" | sed -n '2p'; }
+transcript_of() { parse "$1" "${2:-}" | sed -n '3p'; }
 
 # Lifecycle events. SessionStart -> idle (agent present, waiting); a live
 # idle agent renders a dim badge. SessionEnd -> exit: the agent is GONE,
@@ -59,6 +60,11 @@ assert_eq "" "$(parse '{"hook_event_name":"PreToolUse"}')" "unknown event"
 assert_eq "" "$(parse 'not json')" "malformed payload"
 assert_eq "" "$(parse '')" "empty payload"
 assert_eq "" "$(parse '[1,2]')" "non-dict payload"
+
+# transcript_path passes through on line 3 (empty when absent) so the hook
+# can record it for needs-input verification
+assert_eq "/tmp/t.jsonl" "$(transcript_of '{"hook_event_name":"Stop","transcript_path":"/tmp/t.jsonl"}')" "transcript passthrough"
+assert_eq "" "$(transcript_of '{"hook_event_name":"Stop"}')" "no transcript -> empty line"
 
 # Event name fallbacks: argv, then CLAUDE_HOOK_EVENT_NAME env
 assert_eq "done" "$(state_of '{}' 'Stop')" "argv fallback"

@@ -34,6 +34,12 @@ assert_contains "$(log)" "set-option -p -t %7 @agent_app claude ; set-option -p 
 assert_contains "$(log)" "@agent_updated " "timestamp written"
 assert_eq "1" "$(grep -c 'set-option' "$STUB_LOG")" "single tmux invocation for writes"
 
+# transcript_path in the payload is recorded for needs-input verification
+run_hook '{"hook_event_name":"UserPromptSubmit","transcript_path":"/tmp/t.jsonl"}'
+assert_contains "$(log)" "@agent_transcript /tmp/t.jsonl" "transcript recorded"
+run_hook '{"hook_event_name":"UserPromptSubmit"}'
+assert_not_contains "$(log)" "@agent_transcript" "no transcript -> option untouched"
+
 # needs-input
 run_hook '{"hook_event_name":"Notification","notification_type":"permission_prompt"}'
 assert_contains "$(log)" "@agent_state needs-input" "needs-input state"
@@ -100,6 +106,7 @@ assert_contains "$(log)" "@agent_subagents 1" "non-numeric count resets"
 run_hook '{"hook_event_name":"SessionEnd"}'
 assert_contains "$(log)" "set-option -pu -t %7 @agent_state" "exit unsets state"
 assert_contains "$(log)" "set-option -pu -t %7 @agent_app" "exit unsets app"
+assert_contains "$(log)" "set-option -pu -t %7 @agent_transcript" "exit unsets transcript"
 assert_not_contains "$(log)" "@agent_state exit" "exit is not written as a state"
 
 # Tracing: @agent_bar_trace names a log file; every event appends one line

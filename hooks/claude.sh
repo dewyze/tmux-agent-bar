@@ -12,6 +12,7 @@ resolve_hook_input "$@"
 result="$(HOOK_PAYLOAD="$HOOK_PAYLOAD" python3 "$ROOT_DIR/lib/parse-claude.py" "$HOOK_EVENT_ARG")" || exit 0
 state="$(printf '%s\n' "$result" | sed -n '1p')"
 subagent_event="$(printf '%s\n' "$result" | sed -n '2p')"
+transcript="$(printf '%s\n' "$result" | sed -n '3p')"
 
 # Opt-in diagnostics: `tmux set -g @agent_bar_trace /path/to/log` records
 # every event (including no-ops) with its parse result.
@@ -31,7 +32,8 @@ if [ "$state" = "exit" ]; then
   tmux set-option -pu -t "$pane" @agent_app \; \
     set-option -pu -t "$pane" @agent_state \; \
     set-option -pu -t "$pane" @agent_subagents \; \
-    set-option -pu -t "$pane" @agent_updated 2>/dev/null
+    set-option -pu -t "$pane" @agent_updated \; \
+    set-option -pu -t "$pane" @agent_transcript 2>/dev/null
   exit 0
 fi
 
@@ -66,9 +68,13 @@ case "$subagent_event" in
     ;;
 esac
 
-tmux set-option -p -t "$pane" @agent_app claude \; \
-  set-option -p -t "$pane" @agent_state "$state" \; \
-  set-option -p -t "$pane" @agent_subagents "$count" \; \
-  set-option -p -t "$pane" @agent_updated "$(date +%s)" 2>/dev/null
+write=(set-option -p -t "$pane" @agent_app claude
+  \; set-option -p -t "$pane" @agent_state "$state"
+  \; set-option -p -t "$pane" @agent_subagents "$count"
+  \; set-option -p -t "$pane" @agent_updated "$(date +%s)")
+if [ -n "$transcript" ]; then
+  write+=(\; set-option -p -t "$pane" @agent_transcript "$transcript")
+fi
+tmux "${write[@]}" 2>/dev/null
 
 exit 0
