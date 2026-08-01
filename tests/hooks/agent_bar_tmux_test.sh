@@ -45,6 +45,8 @@ assert_contains "$b" "-x M -y M" "agent menu at mouse"
 assert_contains "$b" "kill-pane -t '#{mouse_status_range}'" "kill targets clicked pane"
 assert_contains "$b" "confirm-before" "kill is confirmed"
 assert_contains "$b" "@agent_state idle" "clear item present"
+assert_contains "$b" "command-prompt" "rename item prompts"
+assert_contains "$b" "@agent_name" "rename sets agent name"
 assert_contains "$b" "swap-window -t:-1" "default window menu replayed"
 assert_contains "$b" "New At End" "default window menu complete"
 

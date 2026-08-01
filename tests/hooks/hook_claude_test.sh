@@ -114,6 +114,7 @@ assert_contains "$(log)" "set-option -pu -t %7 @agent_app" "exit unsets app"
 assert_contains "$(log)" "set-option -pu -t %7 @agent_transcript" "exit unsets transcript"
 assert_not_contains "$(log)" "@agent_state exit" "exit is not written as a state"
 assert_contains "$(log)" "set-option -pu -t %7 @agent_schema" "exit unsets schema"
+assert_not_contains "$(log)" "@agent_name" "exit leaves user-owned name alone"
 
 # Tracing: @agent_bar_trace names a log file; every event appends one line
 # with the payload and the parse result, including no-op events.

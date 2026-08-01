@@ -22,6 +22,7 @@ every consumer reading via formats.
 | `@agent_subagents` | no | live subagent refcount (see state machine) |
 | `@agent_transcript` | no | absolute path to the producer's transcript/log, if it keeps one |
 | `@agent_writer_version` | no | producer's own version, for install-skew diagnosis |
+| `@agent_name` | no | **user-owned**: a stable human-assigned name for the pane's agent. Producers must never write or unset it; it survives agent restarts and dies with the pane |
 
 ## State vocabulary (closed — new states require a schema version bump)
 
@@ -44,8 +45,9 @@ exit event and pane death.
 - Write only panes you own (the pane your agent runs in; `$TMUX_PANE`).
 - Batch multi-option writes into one tmux invocation — each `set-option`
   triggers a full client redraw.
-- On agent exit, **unset every `@agent_*` option** rather than writing a
-  state. A dead agent has no state.
+- On agent exit, **unset every producer-owned `@agent_*` option** rather
+  than writing a state — everything except the user-owned `@agent_name`.
+  A dead agent has no state; the human's label outlives it.
 - Timestamps are epoch seconds, producer's host clock.
 - Subagent lifecycle, if reported, must follow the shared state machine
   (`resolve_agent_state` in `lib/hook-lib.sh`): start increments and forces

@@ -39,6 +39,7 @@ bind-key -n MouseDown3Status {
     display-menu -T 'Agent #{mouse_status_range}' -x M -y M \\
       'Jump' j "run-shell \\"$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'\\"" \\
       'Clear status' c "set-option -p -t '#{mouse_status_range}' @agent_state idle" \\
+      'Rename' n "command-prompt -p 'Agent name:' { set-option -p -t '#{mouse_status_range}' @agent_name '%%' }" \\
       '' \\
       'Kill pane' x "confirm-before -p 'Kill pane #{mouse_status_range}? (y/n)' \\"kill-pane -t '#{mouse_status_range}'\\""
   } {

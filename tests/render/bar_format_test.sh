@@ -88,6 +88,13 @@ tmux_t select-pane -T "fixing the tests" -t "$agent_pane"
 assert_contains "$(shown)" "work/api │ * fixing the tests" "set pane title shown"
 assert_not_contains "$(render)" "$(hostname)" "default hostname title hidden"
 
+# @agent_name beats the pane title: stable, user-chosen, truncated
+tmux_t set-option -p -t "$agent_pane" @agent_name "reviewer"
+assert_contains "$(shown)" "* reviewer" "agent name shown"
+assert_not_contains "$(shown)" "fixing the tests" "name beats title"
+tmux_t set-option -pu -t "$agent_pane" @agent_name
+assert_contains "$(shown)" "* fixing the tests" "title returns when name unset"
+
 # Session prefix only when foreign: with no client every session is foreign
 # (asserted above via work:api); with a client attached to work, work drops
 # the prefix and home keeps it.

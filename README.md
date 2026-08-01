@@ -17,7 +17,8 @@ agent exits. Agents group under one window label; foreign sessions
 prefix `session/`.
 
 - **Left-click** a badge: jump to that pane (session, window, pane).
-- **Right-click**: menu at the click — jump, clear status, kill pane.
+- **Right-click**: menu at the click — jump, clear status, rename
+  (a stable `@agent_name` shown instead of the pane title), kill pane.
   Non-badge status clicks fall through to tmux's defaults.
 - **Navigate to an agent's pane**: acknowledges `+` (clears to `·`).
   `?` is truthful state — it persists until the prompt is actually
