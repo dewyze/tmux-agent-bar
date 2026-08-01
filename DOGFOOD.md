@@ -1,66 +1,75 @@
-# Dogfood checklist
+# QA checklist (round 2)
 
 Each item is *action → expected*. Anything else is a bug: note the time and
-pane, then read the trace (`tmux set -g @agent_bar_trace <file>` must be set —
-re-arm after any server restart).
+pane, then read the trace. Trace must be armed: `tmux show -gv
+@agent_bar_trace` — set it (and re-arm after any server restart) or add it
+to tmux.conf.
 
-## Lifecycle basics (fresh `claude` in a new pane)
+Round 1 verified the core lifecycle and the needs-input contract
+(approve/deny/false-clear all passed); this round covers everything built
+since, plus the two items round 1 left unchecked.
 
-- [x] Start claude → dim `·` badge appears immediately (SessionStart)
-- [x] Submit a prompt → `·` flips to `*` on submit, not on first output
-- [x] Let it finish → `+`; navigate to the pane → `+` clears to `·`
-      (not to nothing — the pane stays on the roster)
-- [x] Exit claude → badge disappears entirely — the *only* way a badge
-      should ever vanish
-- [x] Kill the pane while running → badge gone (pane death = cleanup)
+## Rendering & grouping
 
-## The needs-input contract
+- [ ] Bar reads `║ win │ * claude ...` — heavy bar opens each window group,
+      thin divider before each agent, no whitespace-only separators anywhere
+- [ ] Nerdfont theme active (from tmux.conf): dividers are powerline
+      chevrons ( filled for groups,  thin for panes), not `║`/`│`
+- [ ] Two agents in one window → one window label, two glyphs inside the
+      group, each independently clickable
+- [ ] Badge text is `claude` by default — never a pane title, never a
+      command, never a hostname
+- [ ] Rename (right-click → Rename, or `tmux set -p @agent_name reviewer`)
+      → badge text becomes the name; empty rename → back to `claude`
+- [ ] Name survives restarting claude in that pane (user-owned)
+- [ ] Foreign-session groups (make a scratch session with an agent) show
+      `session/window` label; your own session's groups show bare window
+      names
 
-- [x] Provoke a permission prompt → `?` within a beat
-- [ ] While `?` is up: leave, return, stare, wait out the 60s idle nudge →
-      `?` survives all of it
-- [x] **Approve** → `?` flips to `*` as the tool executes (PostToolUse)
-- [x] **Deny**, then navigate anywhere → `?` clears to `·` on that first
-      navigation (transcript-verified)
-- [x] Deny and *don't* navigate → badge holds until you move; confirm that
-      feels acceptable in practice
-- [x] False-clear guard: `?` up in pane A; in another pane *of the same
-      project*, edit/save a file and navigate around → A's `?` must NOT
-      clear (checkpoint entries are not evidence)
-- [x] Deny-with-instructions → `?` → `*` when it starts on your instruction
+## Leftovers from round 1
 
-## Interactions
+- [ ] Kill a pane while its agent runs → badge gone (pane death = cleanup)
+- [ ] `?` survives the 60s idle nudge while you're away
 
-- [x] From a different window, left-click a badge → lands on that pane;
-      repeat from a different session
-- [x] Left-click a *window name on line 0* → still switches windows;
-      right-click line 0 → tmux's window menu still appears.
-      KNOWN-RISK: review finding #1 says our bindings ate these defaults —
-      if line-0 clicking is dead, that confirms it (fix queued)
-- [ ] Right-click a badge → menu at click point; Jump / Clear status /
-      Kill pane (confirmed) all work
+## Mouse (both halves)
 
-## Multi-agent roster
+- [ ] Left-click badge from another window/session → lands on that pane
+- [ ] Right-click badge → menu AT THE CLICK POINT; quick-click keeps it
+      open; press-drag-release selects in one motion
+- [ ] Menu items: Jump / Clear status / Rename / Kill (confirmed) all work
+- [ ] **Defaults restored**: left-click a window NAME on line 0 → switches
+      window; right-click line 0 → tmux's stock window menu (Swap/Kill/
+      Rename/Respawn/New)
+- [ ] Click a blank area of the agent line → nothing happens, nothing breaks
 
-- [ ] 2–3 claudes across sessions/windows → all badged; current-session
-      labels show `window` only, foreign show `session:window`; claude-set
-      pane titles append truncated
-- [x] Subagent-heavy prompt → `**` during subagents, `*` after; a `+`/`·`
-      badge never resurrects to `*` after the turn ended (stale-stop guard)
+## Options (spot-check the seam)
 
-## Ops / packaging
+- [ ] `tmux set -g @agent_bar_glyph_running R` + re-run `agent-bar.tmux`
+      → glyph changes; unset + re-run → back to `*`
+- [ ] `tmux set -g @agent_bar_name_max 4` + re-run → names truncate
+- [ ] `tmux set -g @agent_bar_mouse off` + `scripts/reset.sh` → badge
+      clicks dead, line-0 defaults still fine (then turn it back on)
 
-- [x] `scripts/reset.sh` → all badges cleared, bar/bindings reapplied,
-      prints checkout version; live agents re-badge on next event
-- [ ] Packaged path: `/plugin marketplace add <repo>` + `/plugin install`;
-      REMOVE the settings.json entries (or events double-fire); restart a
-      session → badges work; `tmux show -pv @agent_writer_version` matches
-      `VERSION`
+## Ops
+
+- [ ] `scripts/reset.sh` → all badges cleared (including names), bar and
+      bindings reapplied, version printed; agents re-badge on next event
+- [ ] tmux server restart → bar returns from conf (nerdfont theme intact),
+      badges repopulate as agents emit events; re-arm the trace
+- [ ] `tmux show -pv @agent_writer_version` on an active agent pane matches
+      `VERSION`; `@agent_schema` reads `1`
+- [ ] Subagent-heavy prompt → `**` while subagents live, `*` after; a
+      finished turn's `+`/`·` never resurrects to `*`
+
+## Packaging (never tested — the big open item)
+
+- [ ] `/plugin marketplace add ~/dev/tmux-agent-bar` + `/plugin install
+      tmux-agent-bar@tmux-agent-bar`; REMOVE the settings.json entries
+      (else events double-fire); restart a claude → badges work
 - [ ] Async check on the packaged path: claude must not visibly stall on
-      prompts/tool calls — a stall means plugin hooks ignore `async: true`
-      and the settings path stays primary
-- [ ] Restart the tmux server → bar returns from the conf line; badges
-      empty until agents emit events; re-arm `@agent_bar_trace`
+      prompts/tool calls (a stall = plugin hooks ignore `async: true` →
+      settings path stays primary)
+- [ ] `claude plugin uninstall` → hooks stop firing, settings untouched
 
-Highest-signal items: deny-then-navigate, the false-clear guard, line-0
-clicks, and the packaged async check.
+Highest-signal: line-0 defaults, the rename flow, and the entire
+packaging section.
