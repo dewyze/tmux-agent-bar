@@ -10,7 +10,9 @@ cat > "$TEST_TMP/bin/tmux" <<STUB
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$STUB_LOG"
 if [ "\$1" = "show-options" ]; then
-  cat "$STATUS_FILE" 2>/dev/null
+  case "\$*" in
+    *" status") cat "$STATUS_FILE" 2>/dev/null ;;
+  esac
 fi
 STUB
 chmod +x "$TEST_TMP/bin/tmux"

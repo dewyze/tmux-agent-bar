@@ -4,20 +4,23 @@
 set -u
 
 CURRENT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
+. "$CURRENT_DIR/lib/options.sh"
 
-# The bar needs a second status line; raise 'on'/'off' to 2 but leave users
-# already running more lines alone (the bar still claims line index 1).
+# The bar claims status line @agent_bar_line (default 1). Raise the status
+# line count to fit it, but leave users already running more lines alone.
+line="$(bar_option line 1)"
+needed=$((line + 1))
 status="$(tmux show-options -gv status 2>/dev/null || true)"
 case "$status" in
-  3|4|5) ;;
-  *) tmux set-option -g status 2 ;;
+  [0-9]) [ "$status" -ge "$needed" ] || tmux set-option -g status "$needed" ;;
+  *) tmux set-option -g status "$needed" ;;
 esac
 
-tmux set-option -g status-format[1] "$(bash "$CURRENT_DIR/lib/bar-format.sh")"
+tmux set-option -g "status-format[$line]" "$(bash "$CURRENT_DIR/lib/bar-format.sh")"
 
-# Badge clicks only: line 1 and a range naming a pane id. Everything else
-# falls through to whatever the user has bound.
-guard='#{&&:#{==:#{mouse_status_line},1},#{m/r:^%[0-9]+$,#{mouse_status_range}}}'
+# Badge clicks only: the bar's line and a range naming a pane id. Everything
+# else falls through to whatever the user has bound.
+guard="#{&&:#{==:#{mouse_status_line},$line},#{m/r:^%[0-9]+\$,#{mouse_status_range}}}"
 
 tmux bind-key -n MouseDown1Status if-shell -F "$guard" \
   "run-shell \"$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'\""
