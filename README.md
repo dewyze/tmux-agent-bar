@@ -31,12 +31,24 @@ TPM: `set -g @plugin 'dewyze/tmux-agent-bar'` — or manually:
 run-shell ~/dev/tmux-agent-bar/agent-bar.tmux
 ```
 
-Then register the Claude Code hooks (edits `~/.claude/settings.json`, with
-backups, idempotently):
+Then register the Claude Code hooks. Preferred: install as a Claude Code
+plugin (clean install *and* uninstall, no settings surgery):
+
+```
+/plugin marketplace add dewyze/tmux-agent-bar   # or the local repo path
+/plugin install tmux-agent-bar@tmux-agent-bar
+```
+
+Alternative for setups without plugin support — edits `~/.claude/settings.json`
+directly (idempotent, with rotated backups):
 
 ```sh
 ./scripts/install-claude-hooks.sh
 ```
+
+Use one path or the other, not both, or every event fires the hook twice.
+Both register the same events (a test enforces it). Hooks load at Claude
+session start; restart sessions (or `/reload-plugins`) after installing.
 
 The plugin raises `status` to 2 and claims `status-format[1]`. If you already
 run 3+ status lines your `status` value is kept, but line index 1 is still

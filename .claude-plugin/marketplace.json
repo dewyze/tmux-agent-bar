@@ -1,0 +1,13 @@
+{
+  "name": "tmux-agent-bar",
+  "owner": {
+    "name": "John DeWyze"
+  },
+  "plugins": [
+    {
+      "name": "tmux-agent-bar",
+      "source": "./",
+      "description": "Report Claude Code lifecycle state to the tmux-agent-bar status line via pane user options."
+    }
+  ]
+}

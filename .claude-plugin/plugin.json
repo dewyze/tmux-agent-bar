@@ -1,0 +1,9 @@
+{
+  "name": "tmux-agent-bar",
+  "description": "Agent status badges on a tmux status line: lifecycle hooks write tmux pane options, a pure format string renders them. No daemon, no state files.",
+  "version": "0.1.0",
+  "author": {
+    "name": "John DeWyze"
+  },
+  "homepage": "https://github.com/dewyze/tmux-agent-bar"
+}
