@@ -16,6 +16,10 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 
 theme="$(bar_option theme ascii)"
 
+# Separator hierarchy: the thin divider separates agents inside a group,
+# the heavy one opens each group. Both are visible characters — spaces are
+# not separators. Group separators LEAD their group (like pane separators
+# lead their glyph) so nothing ever dangles at the end of the bar.
 case "$theme" in
   nerdfont)
     default_pane_sep='  '   # U+E0B1 thin powerline divider
@@ -23,7 +27,7 @@ case "$theme" in
     ;;
   *)
     default_pane_sep=' │ '
-    default_group_sep='   '
+    default_group_sep=' ║ '
     ;;
 esac
 
@@ -63,10 +67,8 @@ pane_glyph="#{?#{@agent_state},#[fg=colour240]${pane_sep}#[default]#[range=user|
 session_prefix="#{?#{!=:#{session_name},#{client_session}},#{session_name}${session_sep},}"
 
 # A window renders only if some pane in it has agent state (the inner P
-# probe emits a marker per agent pane; non-empty means true). The group
-# separator trails each group; the ascii default is a plain gap, so nothing
-# visible dangles after the last group.
+# probe emits a marker per agent pane; non-empty means true).
 window_has_agents='#{P:#{?#{@agent_state},x,}}'
-window_group="#{?${window_has_agents},#[fg=colour243]${session_prefix}#{window_name}${label_suffix}#[default]#{P:${pane_glyph}}#[fg=colour240]${group_sep}#[default],}"
+window_group="#{?${window_has_agents},#[fg=colour240]${group_sep}#[default]#[fg=colour243]${session_prefix}#{window_name}${label_suffix}#[default]#{P:${pane_glyph}},}"
 
 printf '#{S:#{W:%s}}' "$window_group"

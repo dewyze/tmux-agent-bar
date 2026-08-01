@@ -68,8 +68,9 @@ tmux_t set-option -p -t "$home_pane" @agent_state needs-input
 out="$(render)"
 assert_contains "$out" "#[range=user|$agent_pane]" "first badge range"
 assert_contains "$out" "#[range=user|$home_pane]" "second badge range"
-assert_contains "$(shown)" "work/api │ *" "first group"
-assert_contains "$(shown)" "home/notes │ ?" "second group"
+assert_contains "$(shown)" "║ work/api │ *" "first group opened by group bar"
+assert_contains "$(shown)" "║ home/notes │ ?" "second group opened by group bar"
+assert_eq "2" "$(shown | grep -o '║' | grep -c .)" "one group bar per group, none dangling"
 
 # Agents in the same window group under ONE label: win label once, one
 # glyph range per pane (also covers non-active panes via the P loop)
