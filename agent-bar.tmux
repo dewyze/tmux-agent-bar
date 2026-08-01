@@ -22,8 +22,17 @@ guard='#{&&:#{==:#{mouse_status_line},1},#{m/r:^%[0-9]+$,#{mouse_status_range}}}
 tmux bind-key -n MouseDown1Status if-shell -F "$guard" \
   "run-shell \"$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'\""
 
+# The menu must open inside the binding, keeping the live mouse event:
+# -x M -y M positions at the click, and tmux's native menu then supports
+# both press-drag-release selection and click-then-choose. Routing through
+# run-shell loses the event (menu lands at the top edge and dies on button
+# release). Formats in the items expand when the menu opens, mouse valid.
 tmux bind-key -n MouseDown3Status if-shell -F "$guard" \
-  "run-shell \"$CURRENT_DIR/scripts/menu.sh '#{mouse_status_range}' '#{mouse_x}' '#{mouse_y}'\""
+  "display-menu -T 'Agent #{mouse_status_range}' -x M -y M \
+    'Jump' j \"run-shell \\\"$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'\\\"\" \
+    'Clear status' c \"set-option -p -t '#{mouse_status_range}' @agent_state idle\" \
+    '' \
+    'Kill pane' x \"confirm-before -p 'Kill pane #{mouse_status_range}? (y/n)' \\\"kill-pane -t '#{mouse_status_range}'\\\"\""
 
 # Navigating to an agent pane acknowledges done (a seen "+" has no residual
 # truth). needs-input persists — the pane still wants input until an event

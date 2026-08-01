@@ -32,7 +32,16 @@ assert_contains "$log" "bind-key -n MouseDown3Status" "right-click bound"
 assert_contains "$log" "mouse_status_line" "bindings guard on status line"
 assert_contains "$log" "mouse_status_range" "bindings read clicked range"
 assert_contains "$log" "jump.sh" "left-click jumps"
-assert_contains "$log" "menu.sh" "right-click menus"
+
+# The menu opens directly in the binding so it keeps the live mouse event:
+# -x M -y M positions at the click, and tmux's native menu handles both
+# hold-release and click-to-stay. A run-shell detour loses both.
+assert_contains "$log" "display-menu" "right-click opens menu directly"
+assert_contains "$log" "-x M -y M" "menu positioned at mouse"
+assert_not_contains "$log" "menu.sh" "no run-shell detour for the menu"
+assert_contains "$log" "kill-pane -t '#{mouse_status_range}'" "kill targets clicked pane"
+assert_contains "$log" "confirm-before" "kill is confirmed"
+assert_contains "$log" "@agent_state idle" "clear item present"
 
 # status off is treated the same as on: the bar needs two lines
 run_plugin "off"

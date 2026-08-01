@@ -6,34 +6,34 @@ re-arm after any server restart).
 
 ## Lifecycle basics (fresh `claude` in a new pane)
 
-- [ ] Start claude → dim `·` badge appears immediately (SessionStart)
-- [ ] Submit a prompt → `·` flips to `*` on submit, not on first output
-- [ ] Let it finish → `+`; navigate to the pane → `+` clears to `·`
+- [x] Start claude → dim `·` badge appears immediately (SessionStart)
+- [x] Submit a prompt → `·` flips to `*` on submit, not on first output
+- [x] Let it finish → `+`; navigate to the pane → `+` clears to `·`
       (not to nothing — the pane stays on the roster)
-- [ ] Exit claude → badge disappears entirely — the *only* way a badge
+- [x] Exit claude → badge disappears entirely — the *only* way a badge
       should ever vanish
-- [ ] Kill the pane while running → badge gone (pane death = cleanup)
+- [x] Kill the pane while running → badge gone (pane death = cleanup)
 
 ## The needs-input contract
 
-- [ ] Provoke a permission prompt → `?` within a beat
+- [x] Provoke a permission prompt → `?` within a beat
 - [ ] While `?` is up: leave, return, stare, wait out the 60s idle nudge →
       `?` survives all of it
-- [ ] **Approve** → `?` flips to `*` as the tool executes (PostToolUse)
-- [ ] **Deny**, then navigate anywhere → `?` clears to `·` on that first
+- [x] **Approve** → `?` flips to `*` as the tool executes (PostToolUse)
+- [x] **Deny**, then navigate anywhere → `?` clears to `·` on that first
       navigation (transcript-verified)
-- [ ] Deny and *don't* navigate → badge holds until you move; confirm that
+- [x] Deny and *don't* navigate → badge holds until you move; confirm that
       feels acceptable in practice
-- [ ] False-clear guard: `?` up in pane A; in another pane *of the same
+- [x] False-clear guard: `?` up in pane A; in another pane *of the same
       project*, edit/save a file and navigate around → A's `?` must NOT
       clear (checkpoint entries are not evidence)
-- [ ] Deny-with-instructions → `?` → `*` when it starts on your instruction
+- [x] Deny-with-instructions → `?` → `*` when it starts on your instruction
 
 ## Interactions
 
-- [ ] From a different window, left-click a badge → lands on that pane;
+- [x] From a different window, left-click a badge → lands on that pane;
       repeat from a different session
-- [ ] Left-click a *window name on line 0* → still switches windows;
+- [x] Left-click a *window name on line 0* → still switches windows;
       right-click line 0 → tmux's window menu still appears.
       KNOWN-RISK: review finding #1 says our bindings ate these defaults —
       if line-0 clicking is dead, that confirms it (fix queued)
@@ -45,12 +45,12 @@ re-arm after any server restart).
 - [ ] 2–3 claudes across sessions/windows → all badged; current-session
       labels show `window` only, foreign show `session:window`; claude-set
       pane titles append truncated
-- [ ] Subagent-heavy prompt → `**` during subagents, `*` after; a `+`/`·`
+- [x] Subagent-heavy prompt → `**` during subagents, `*` after; a `+`/`·`
       badge never resurrects to `*` after the turn ended (stale-stop guard)
 
 ## Ops / packaging
 
-- [ ] `scripts/reset.sh` → all badges cleared, bar/bindings reapplied,
+- [x] `scripts/reset.sh` → all badges cleared, bar/bindings reapplied,
       prints checkout version; live agents re-badge on next event
 - [ ] Packaged path: `/plugin marketplace add <repo>` + `/plugin install`;
       REMOVE the settings.json entries (or events double-fire); restart a
