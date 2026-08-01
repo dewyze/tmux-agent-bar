@@ -22,12 +22,11 @@ every consumer reading via formats.
 | `@agent_subagents` | no | live subagent refcount (see state machine) |
 | `@agent_transcript` | no | absolute path to the producer's transcript/log, if it keeps one |
 | `@agent_writer_version` | no | producer's own version, for install-skew diagnosis |
-| `@agent_instance_name` | no | the harness's own name for this instance (session title, /rename target), when it reports one |
 | `@agent_name` | no | **user-owned**: a stable human-assigned name for the pane's agent. Producers must never write or unset it; it survives agent restarts and dies with the pane |
 
 Consumers displaying a name use strict precedence: `@agent_name` →
-`@agent_instance_name` → `@agent_app` → nothing. Pane titles and process
-commands are not part of the schema and should not be displayed as names.
+`@agent_app` → nothing. Pane titles and process commands are not part of
+the schema and should not be displayed as names.
 
 ## State vocabulary (closed — new states require a schema version bump)
 

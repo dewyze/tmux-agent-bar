@@ -71,12 +71,11 @@ run_agent_hook() {
 
   resolve_hook_input "$@"
 
-  local result state subagent_event transcript instance_name
+  local result state subagent_event transcript
   result="$(HOOK_PAYLOAD="$HOOK_PAYLOAD" python3 "$lib_dir/parse-$app.py" "$HOOK_EVENT_ARG")" || return 0
   state="$(printf '%s\n' "$result" | sed -n '1p')"
   subagent_event="$(printf '%s\n' "$result" | sed -n '2p')"
   transcript="$(printf '%s\n' "$result" | sed -n '3p')"
-  instance_name="$(printf '%s\n' "$result" | sed -n '4p')"
 
   # Opt-in diagnostics: `tmux set -g @agent_bar_trace /path/to/log` records
   # every event (including no-ops) with its parse result.
@@ -100,8 +99,7 @@ run_agent_hook() {
       set-option -pu -t "$pane" @agent_updated \; \
       set-option -pu -t "$pane" @agent_transcript \; \
       set-option -pu -t "$pane" @agent_writer_version \; \
-      set-option -pu -t "$pane" @agent_schema \; \
-      set-option -pu -t "$pane" @agent_instance_name 2>/dev/null
+      set-option -pu -t "$pane" @agent_schema 2>/dev/null
     return 0
   fi
 
@@ -123,9 +121,6 @@ run_agent_hook() {
     \; set-option -p -t "$pane" @agent_schema 1)
   if [ -n "$transcript" ]; then
     write+=(\; set-option -p -t "$pane" @agent_transcript "$transcript")
-  fi
-  if [ -n "$instance_name" ]; then
-    write+=(\; set-option -p -t "$pane" @agent_instance_name "$instance_name")
   fi
   tmux "${write[@]}" 2>/dev/null
 

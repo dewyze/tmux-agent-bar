@@ -58,10 +58,9 @@ glyph_idle="$(bar_option glyph_idle '·')"
 state_mark="#{?#{==:#{@agent_state},needs-input},#[fg=yellow bold]${glyph_needs_input},#{?#{==:#{@agent_state},error},#[fg=red bold]${glyph_error},#{?#{==:#{@agent_state},done},#[fg=green]${glyph_done},#{?#{==:#{@agent_state},subagent-running},#[fg=cyan]${glyph_subagent},#{?#{==:#{@agent_state},idle},#[fg=colour243]${glyph_idle},#[fg=cyan]${glyph_running}}}}}}"
 
 # Badge text after the glyph, strict precedence (SCHEMA.md): our rename
-# (@agent_name) -> the harness's own instance name (@agent_instance_name)
-# -> the harness (@agent_app) -> nothing. Pane titles and commands never
-# render. Truncated at name_max.
-title_suffix="#{?#{@agent_name}, #{=${name_max}:@agent_name},#{?#{@agent_instance_name}, #{=${name_max}:@agent_instance_name},#{?#{@agent_app}, #{@agent_app},}}}"
+# (@agent_name) -> the harness (@agent_app) -> nothing. Pane titles and
+# commands never render. Truncated at name_max.
+title_suffix="#{?#{@agent_name}, #{=${name_max}:@agent_name},#{?#{@agent_app}, #{@agent_app},}}"
 
 # One glyph per agent pane, each led by the pane separator; any set state
 # renders — idle is a live agent waiting (dim). A glyph disappears only when

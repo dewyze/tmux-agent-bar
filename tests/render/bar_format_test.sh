@@ -80,8 +80,8 @@ out="$(render)"
 assert_contains "$out" "#[range=user|$plain_pane]" "non-active pane badge"
 assert_eq "1" "$(printf '%s' "$out" | grep -o 'work/api' | grep -c .)" "window label appears once"
 
-# Badge text precedence: our name -> harness's instance name -> harness
-# name -> nothing. Pane titles and commands never render.
+# Badge text precedence: our name -> harness name -> nothing. Pane
+# titles and commands never render.
 tmux_t set-option -pu -t "$plain_pane" @agent_state
 tmux_t set-option -p -t "$agent_pane" @agent_state running
 tmux_t select-pane -T "fixing the tests" -t "$agent_pane"
@@ -90,15 +90,11 @@ assert_not_contains "$(render)" "$(hostname)" "hostname never renders"
 
 tmux_t set-option -p -t "$agent_pane" @agent_app claude
 assert_contains "$(shown)" "work/api │ * claude" "harness name is the default"
-tmux_t set-option -p -t "$agent_pane" @agent_instance_name "api fixer"
-assert_contains "$(shown)" "* api fixer" "instance name beats harness name"
-assert_not_contains "$(shown)" "claude" "instance name replaces harness name"
 tmux_t set-option -p -t "$agent_pane" @agent_name "reviewer"
-assert_contains "$(shown)" "* reviewer" "our name beats instance name"
-assert_not_contains "$(shown)" "api fixer" "our name replaces instance name"
+assert_contains "$(shown)" "* reviewer" "our name beats harness name"
+assert_not_contains "$(shown)" "claude" "rename replaces harness name"
 tmux_t set-option -pu -t "$agent_pane" @agent_name
-tmux_t set-option -pu -t "$agent_pane" @agent_instance_name
-assert_contains "$(shown)" "* claude" "falls back down the chain"
+assert_contains "$(shown)" "* claude" "falls back to harness name"
 tmux_t set-option -pu -t "$agent_pane" @agent_app
 
 # Session prefix only when foreign: with no client every session is foreign
