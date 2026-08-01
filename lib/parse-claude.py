@@ -49,8 +49,12 @@ def event_name(data):
 
 def parse(data):
     event = event_name(data)
-    if event in ("SessionStart", "SessionEnd"):
+    if event == "SessionStart":
         return "idle", ""
+    if event == "SessionEnd":
+        # Not a state: the hook unsets the pane's options so the agent
+        # leaves the bar entirely instead of lingering as a dim badge.
+        return "exit", ""
     if event == "UserPromptSubmit":
         return "running", ""
     if event in ("PostToolUse", "PostToolUseFailure", "PermissionDenied"):

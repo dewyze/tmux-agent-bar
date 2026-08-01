@@ -96,6 +96,12 @@ printf 'junk' > "$COUNT_FILE"
 run_hook '{"hook_event_name":"SubagentStart"}'
 assert_contains "$(log)" "@agent_subagents 1" "non-numeric count resets"
 
+# SessionEnd removes the agent from the bar: all options unset, none written
+run_hook '{"hook_event_name":"SessionEnd"}'
+assert_contains "$(log)" "set-option -pu -t %7 @agent_state" "exit unsets state"
+assert_contains "$(log)" "set-option -pu -t %7 @agent_app" "exit unsets app"
+assert_not_contains "$(log)" "@agent_state exit" "exit is not written as a state"
+
 # Tracing: @agent_bar_trace names a log file; every event appends one line
 # with the payload and the parse result, including no-op events.
 TRACE_FILE="$TEST_TMP/trace.log"

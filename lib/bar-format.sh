@@ -8,7 +8,7 @@ set -u
 # expansion untouched and are parsed later by format_draw, so emitting them
 # from conditional branches is safe. Style syntax uses spaces, never commas,
 # to avoid breaking the surrounding #{?...} alternatives.
-state_mark='#{?#{==:#{@agent_state},needs-input},#[fg=yellow bold]?,#{?#{==:#{@agent_state},error},#[fg=red bold]!,#{?#{==:#{@agent_state},done},#[fg=green]+,#{?#{==:#{@agent_state},subagent-running},#[fg=cyan]**,#[fg=cyan]*}}}}'
+state_mark='#{?#{==:#{@agent_state},needs-input},#[fg=yellow bold]?,#{?#{==:#{@agent_state},error},#[fg=red bold]!,#{?#{==:#{@agent_state},done},#[fg=green]+,#{?#{==:#{@agent_state},subagent-running},#[fg=cyan]**,#{?#{==:#{@agent_state},idle},#[fg=colour243]·,#[fg=cyan]*}}}}}'
 
 # Label: window name; pane title appended (truncated) when something set one
 # (the default title is the hostname — noise); session prefix only when the
@@ -18,6 +18,8 @@ title_suffix='#{?#{&&:#{pane_title},#{!=:#{pane_title},#{host}}}, #{=24:pane_tit
 
 badge="#[range=user|#{pane_id}]${state_mark} ${session_prefix}#{window_name}${title_suffix}#[default]#[norange]  "
 
-visible="#{?#{&&:#{@agent_state},#{!=:#{@agent_state},idle}},${badge},}"
+# Any set state renders — idle is a live agent waiting (dim badge). A badge
+# disappears only when the agent exits (options unset) or the pane dies.
+visible="#{?#{@agent_state},${badge},}"
 
 printf '#{S:#{W:#{P:%s}}}' "$visible"

@@ -42,9 +42,13 @@ assert_contains "$(render)" "! work:api" "error glyph"
 tmux_t set-option -p -t "$agent_pane" @agent_state subagent-running
 assert_contains "$(render)" "** work:api" "subagent glyph"
 
-# idle is invisible
+# idle is a live agent waiting for input: dim badge, still clickable —
+# only an unset state (agent gone) renders nothing
 tmux_t set-option -p -t "$agent_pane" @agent_state idle
-assert_eq "" "$(render | tr -d ' ')" "idle renders nothing"
+assert_contains "$(render)" "· work:api" "idle renders dim badge"
+assert_contains "$(render)" "#[range=user|$agent_pane]" "idle badge clickable"
+tmux_t set-option -pu -t "$agent_pane" @agent_state
+assert_eq "" "$(render | tr -d ' ')" "unset state renders nothing"
 
 # Two agents in different sessions both render, independently clickable
 tmux_t set-option -p -t "$agent_pane" @agent_state running

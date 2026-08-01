@@ -58,3 +58,9 @@ other="$(tmux_t list-panes -F '#{pane_id}' | grep -v "^$pane\$" | head -1)"
 printf '%s' '{"hook_event_name":"UserPromptSubmit"}' | TMUX_PANE="$other" bash "$ROOT_DIR/hooks/claude.sh"
 assert_eq "running" "$(tmux_t show-options -pv -t "$other" @agent_state)" "other pane running"
 assert_eq "running" "$(option @agent_state)" "first pane untouched"
+
+# SessionEnd wipes the pane's agent options entirely
+run_hook '{"hook_event_name":"SessionEnd"}'
+assert_eq "" "$(option @agent_state)" "state unset after SessionEnd"
+assert_eq "" "$(option @agent_app)" "app unset after SessionEnd"
+assert_eq "running" "$(tmux_t show-options -pv -t "$other" @agent_state)" "other pane survives"

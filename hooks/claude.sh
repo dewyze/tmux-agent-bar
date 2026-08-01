@@ -27,6 +27,14 @@ fi
 pane="${TMUX_PANE:-}"
 [[ "$pane" =~ ^%[0-9]+$ ]] || exit 0
 
+if [ "$state" = "exit" ]; then
+  tmux set-option -pu -t "$pane" @agent_app \; \
+    set-option -pu -t "$pane" @agent_state \; \
+    set-option -pu -t "$pane" @agent_subagents \; \
+    set-option -pu -t "$pane" @agent_updated 2>/dev/null
+  exit 0
+fi
+
 count="$(tmux show-options -pv -t "$pane" @agent_subagents 2>/dev/null || true)"
 [[ "$count" =~ ^[0-9]+$ ]] || count=0
 

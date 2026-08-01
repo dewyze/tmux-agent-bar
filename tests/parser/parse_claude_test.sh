@@ -9,9 +9,11 @@ parse() {
 state_of() { parse "$1" "${2:-}" | sed -n '1p'; }
 subagent_of() { parse "$1" "${2:-}" | sed -n '2p'; }
 
-# Lifecycle events
+# Lifecycle events. SessionStart -> idle (agent present, waiting); a live
+# idle agent renders a dim badge. SessionEnd -> exit: the agent is GONE,
+# which removes the badge entirely rather than dimming it.
 assert_eq "idle" "$(state_of '{"hook_event_name":"SessionStart"}')" "SessionStart"
-assert_eq "idle" "$(state_of '{"hook_event_name":"SessionEnd"}')" "SessionEnd"
+assert_eq "exit" "$(state_of '{"hook_event_name":"SessionEnd"}')" "SessionEnd"
 assert_eq "running" "$(state_of '{"hook_event_name":"UserPromptSubmit"}')" "UserPromptSubmit"
 assert_eq "done" "$(state_of '{"hook_event_name":"Stop"}')" "Stop"
 
