@@ -53,13 +53,15 @@ assert_contains "$(render)" "#[range=user|$agent_pane]" "idle badge clickable"
 tmux_t set-option -pu -t "$agent_pane" @agent_state
 assert_eq "" "$(render | tr -d ' ')" "unset state renders nothing"
 
-# Two agents in different sessions both render, independently clickable
+# Two agents in different sessions both render, independently clickable,
+# each group bracketed so window groups are visually delimited
 tmux_t set-option -p -t "$agent_pane" @agent_state running
 tmux_t set-option -p -t "$home_pane" @agent_state needs-input
 out="$(render)"
 assert_contains "$out" "#[range=user|$agent_pane]" "first badge range"
 assert_contains "$out" "#[range=user|$home_pane]" "second badge range"
-assert_contains "$(shown)" "home:notes ?" "second badge label"
+assert_contains "$(shown)" "[work:api *]" "first group bracketed"
+assert_contains "$(shown)" "[home:notes ?]" "second group bracketed"
 
 # Agents in the same window group under ONE label: win label once, one
 # glyph range per pane (also covers non-active panes via the P loop)

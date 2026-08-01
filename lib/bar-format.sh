@@ -18,15 +18,17 @@ title_suffix='#{?#{&&:#{pane_title},#{!=:#{pane_title},#{host}}}, #{=24:pane_tit
 
 # One glyph per agent pane; any set state renders — idle is a live agent
 # waiting (dim). A glyph disappears only when the agent exits or the pane
-# dies.
-pane_glyph="#{?#{@agent_state},#[range=user|#{pane_id}]${state_mark}${title_suffix}#[default]#[norange] ,}"
+# dies. Leading space so the closing bracket hugs the last glyph.
+pane_glyph="#{?#{@agent_state}, #[range=user|#{pane_id}]${state_mark}${title_suffix}#[default]#[norange],}"
 
 # Session prefix only for panes outside the viewing client's session.
 session_prefix='#{?#{!=:#{session_name},#{client_session}},#{session_name}:,}'
 
 # A window renders only if some pane in it has agent state (the inner P
-# probe emits a marker per agent pane; non-empty means true).
+# probe emits a marker per agent pane; non-empty means true). Groups are
+# bracketed dim so window separation reads differently from the pane
+# spacing inside a group — and nothing dangles after the last group.
 window_has_agents='#{P:#{?#{@agent_state},x,}}'
-window_group="#{?${window_has_agents},#[fg=colour243]${session_prefix}#{window_name}#[default] #{P:${pane_glyph}} ,}"
+window_group="#{?${window_has_agents},#[fg=colour240][#[fg=colour243]${session_prefix}#{window_name}#[default]#{P:${pane_glyph}}#[fg=colour240]]#[default] ,}"
 
 printf '#{S:#{W:%s}}' "$window_group"
