@@ -30,10 +30,13 @@ tmux_t set-option -g @agent_bar_glyph_running "R"
 assert_contains "$(shown)" "│ R" "glyph override"
 tmux_t set-option -gu @agent_bar_glyph_running
 
-# Titles hidden entirely with title_max 0
-tmux_t set-option -g @agent_bar_title_max 0
-assert_not_contains "$(shown)" "fixing the tests" "title_max 0 hides titles"
-tmux_t set-option -gu @agent_bar_title_max
+# Badge text truncation via name_max
+tmux_t set-option -p -t "$pane" @agent_name "reviewer"
+tmux_t set-option -g @agent_bar_name_max 3
+assert_contains "$(shown)" "* rev" "name truncated to name_max"
+assert_not_contains "$(shown)" "reviewer" "long name cut"
+tmux_t set-option -gu @agent_bar_name_max
+tmux_t set-option -pu -t "$pane" @agent_name
 
 # Label suffix restores the colon grammar
 tmux_t set-option -g @agent_bar_label_suffix ":"

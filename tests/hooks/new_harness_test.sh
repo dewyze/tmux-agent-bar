@@ -35,6 +35,7 @@ if state:
     print(state)
     print("")
     print(data.get("log", ""))
+    print(data.get("nick", ""))
 PY
 
 # Recipe file 2: the wrapper
@@ -58,9 +59,10 @@ assert_contains "$(log)" "@agent_state running" "state written"
 assert_contains "$(log)" "@agent_schema 1" "schema stamped"
 assert_contains "$(log)" "@agent_updated " "timestamp written"
 
-run_fake '{"event":"ask","log":"/tmp/fake.jsonl"}'
+run_fake '{"event":"ask","log":"/tmp/fake.jsonl","nick":"helper-2"}'
 assert_contains "$(log)" "@agent_state needs-input" "needs-input"
 assert_contains "$(log)" "@agent_transcript /tmp/fake.jsonl" "transcript recorded"
+assert_contains "$(log)" "@agent_instance_name helper-2" "instance name recorded"
 
 run_fake '{"event":"nonsense"}'
 assert_not_contains "$(log)" "set-option" "unknown events are no-ops"

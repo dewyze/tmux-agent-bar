@@ -80,20 +80,26 @@ out="$(render)"
 assert_contains "$out" "#[range=user|$plain_pane]" "non-active pane badge"
 assert_eq "1" "$(printf '%s' "$out" | grep -o 'work/api' | grep -c .)" "window label appears once"
 
-# Pane title: shown (truncated) after the pane's glyph when set; the
-# default hostname title is noise and stays hidden.
+# Badge text precedence: our name -> harness's instance name -> harness
+# name -> nothing. Pane titles and commands never render.
 tmux_t set-option -pu -t "$plain_pane" @agent_state
 tmux_t set-option -p -t "$agent_pane" @agent_state running
 tmux_t select-pane -T "fixing the tests" -t "$agent_pane"
-assert_contains "$(shown)" "work/api │ * fixing the tests" "set pane title shown"
-assert_not_contains "$(render)" "$(hostname)" "default hostname title hidden"
+assert_not_contains "$(shown)" "fixing the tests" "pane title never renders"
+assert_not_contains "$(render)" "$(hostname)" "hostname never renders"
 
-# @agent_name beats the pane title: stable, user-chosen, truncated
+tmux_t set-option -p -t "$agent_pane" @agent_app claude
+assert_contains "$(shown)" "work/api │ * claude" "harness name is the default"
+tmux_t set-option -p -t "$agent_pane" @agent_instance_name "api fixer"
+assert_contains "$(shown)" "* api fixer" "instance name beats harness name"
+assert_not_contains "$(shown)" "claude" "instance name replaces harness name"
 tmux_t set-option -p -t "$agent_pane" @agent_name "reviewer"
-assert_contains "$(shown)" "* reviewer" "agent name shown"
-assert_not_contains "$(shown)" "fixing the tests" "name beats title"
+assert_contains "$(shown)" "* reviewer" "our name beats instance name"
+assert_not_contains "$(shown)" "api fixer" "our name replaces instance name"
 tmux_t set-option -pu -t "$agent_pane" @agent_name
-assert_contains "$(shown)" "* fixing the tests" "title returns when name unset"
+tmux_t set-option -pu -t "$agent_pane" @agent_instance_name
+assert_contains "$(shown)" "* claude" "falls back down the chain"
+tmux_t set-option -pu -t "$agent_pane" @agent_app
 
 # Session prefix only when foreign: with no client every session is foreign
 # (asserted above via work:api); with a client attached to work, work drops
@@ -108,6 +114,6 @@ done
 [ -n "$client" ] || fail "control client never attached"
 attached="$(tmux_t display-message -p -c "$client" "$format" | sed 's/#\[[^]]*\]//g')"
 exec 9>&-
-assert_contains "$attached" "api │ * fixing the tests" "local badge keeps window name"
+assert_contains "$attached" "api │ *" "local badge keeps window name"
 assert_not_contains "$attached" "work/api" "local session prefix hidden"
 assert_contains "$attached" "home/notes │ ?" "foreign session prefix kept"

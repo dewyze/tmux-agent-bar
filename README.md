@@ -17,8 +17,9 @@ agent exits. Agents group under one window label; foreign sessions
 prefix `session/`.
 
 - **Left-click** a badge: jump to that pane (session, window, pane).
-- **Right-click**: menu at the click — jump, clear status, rename
-  (a stable `@agent_name` shown instead of the pane title), kill pane.
+- **Right-click**: menu at the click — jump, clear status, rename, kill
+  pane. Badge text: your rename → the harness's instance name → the
+  harness (`claude`, `codex`, ...).
   Non-badge status clicks fall through to tmux's defaults.
 - **Navigate to an agent's pane**: acknowledges `+` (clears to `·`).
   `?` is truthful state — it persists until the prompt is actually
@@ -96,7 +97,7 @@ Set options before the plugin loads (re-run `agent-bar.tmux` or
 | `@agent_bar_group_separator` | ` ║ ` | opens each window group |
 | `@agent_bar_label_suffix` | *(empty)* | e.g. `:` for colon grammar |
 | `@agent_bar_session_separator` | `/` | foreign-session prefix joiner |
-| `@agent_bar_title_max` | `24` | pane-title truncation; `0` hides titles |
+| `@agent_bar_name_max` | `24` | badge-name truncation |
 | `@agent_bar_glyph_<state>` | `* ** ? + ! ·` | per-state glyph overrides |
 | `@agent_bar_trace` | *(unset)* | file path enables hook event tracing |
 
