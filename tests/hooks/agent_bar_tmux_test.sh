@@ -26,7 +26,7 @@ run_plugin() {
 run_plugin "on"
 log="$(cat "$STUB_LOG")"
 assert_contains "$log" "set-option -g status 2" "status raised to 2"
-assert_contains "$log" "set-option -g status-format[1] #{S:#{W:#{P:" "bar format installed"
+assert_contains "$log" "set-option -g status-format[1] #{S:#{W:" "bar format installed"
 assert_contains "$log" "bind-key -n MouseDown1Status" "left-click bound"
 assert_contains "$log" "bind-key -n MouseDown3Status" "right-click bound"
 assert_contains "$log" "mouse_status_line" "bindings guard on status line"

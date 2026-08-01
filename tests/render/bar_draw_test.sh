@@ -26,10 +26,10 @@ captured=""
 for _ in $(seq 1 24); do
   sleep 0.5
   captured="$(tmux_o capture-pane -p)"
-  case "$captured" in *"? api"*) break ;; esac
+  case "$captured" in *"api ?"*) break ;; esac
 done
 
-assert_contains "$captured" "? api" "badge drawn on status line"
+assert_contains "$captured" "api ?" "badge drawn on status line"
 
 # State change redraws without any explicit refresh
 tmux_i set-option -p -t "$pane" @agent_state done
@@ -37,6 +37,6 @@ updated=""
 for _ in $(seq 1 24); do
   sleep 0.5
   updated="$(tmux_o capture-pane -p)"
-  case "$updated" in *"+ api"*) break ;; esac
+  case "$updated" in *"api +"*) break ;; esac
 done
-assert_contains "$updated" "+ api" "redraw on option change"
+assert_contains "$updated" "api +" "redraw on option change"

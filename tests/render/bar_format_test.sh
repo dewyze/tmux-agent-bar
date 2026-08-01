@@ -20,6 +20,9 @@ home_pane="$(tmux_t list-panes -t home:notes -F '#{pane_id}')"
 
 format="$(bash "$ROOT_DIR/lib/bar-format.sh")"
 render() { tmux_t display-message -p "$format"; }
+# Visible text only — what format_draw would paint; use for label/glyph
+# assertions. Range assertions read the raw expansion via render().
+shown() { render | sed 's/#\[[^]]*\]//g'; }
 
 # No agent state anywhere -> empty bar
 assert_eq "" "$(render | tr -d ' ')" "empty bar without agents"
@@ -32,20 +35,20 @@ assert_contains "$out" "#[norange]" "range closes"
 assert_contains "$out" "work:api" "session:window label"
 assert_not_contains "$out" "home:notes" "stateless pane renders nothing"
 
-# States get distinct glyphs
+# States get distinct glyphs; the window label leads its group
 tmux_t set-option -p -t "$agent_pane" @agent_state needs-input
-assert_contains "$(render)" "? work:api" "needs-input glyph"
+assert_contains "$(shown)" "work:api ?" "needs-input glyph"
 tmux_t set-option -p -t "$agent_pane" @agent_state done
-assert_contains "$(render)" "+ work:api" "done glyph"
+assert_contains "$(shown)" "work:api +" "done glyph"
 tmux_t set-option -p -t "$agent_pane" @agent_state error
-assert_contains "$(render)" "! work:api" "error glyph"
+assert_contains "$(shown)" "work:api !" "error glyph"
 tmux_t set-option -p -t "$agent_pane" @agent_state subagent-running
-assert_contains "$(render)" "** work:api" "subagent glyph"
+assert_contains "$(shown)" "work:api **" "subagent glyph"
 
 # idle is a live agent waiting for input: dim badge, still clickable —
 # only an unset state (agent gone) renders nothing
 tmux_t set-option -p -t "$agent_pane" @agent_state idle
-assert_contains "$(render)" "· work:api" "idle renders dim badge"
+assert_contains "$(shown)" "work:api ·" "idle renders dim badge"
 assert_contains "$(render)" "#[range=user|$agent_pane]" "idle badge clickable"
 tmux_t set-option -pu -t "$agent_pane" @agent_state
 assert_eq "" "$(render | tr -d ' ')" "unset state renders nothing"
@@ -56,18 +59,22 @@ tmux_t set-option -p -t "$home_pane" @agent_state needs-input
 out="$(render)"
 assert_contains "$out" "#[range=user|$agent_pane]" "first badge range"
 assert_contains "$out" "#[range=user|$home_pane]" "second badge range"
-assert_contains "$out" "? home:notes" "second badge label"
+assert_contains "$(shown)" "home:notes ?" "second badge label"
 
-# A non-active pane with state still renders (P loop, not active-pane shortcut)
+# Agents in the same window group under ONE label: win label once, one
+# glyph range per pane (also covers non-active panes via the P loop)
 tmux_t set-option -p -t "$plain_pane" @agent_state running
 tmux_t select-pane -t "$agent_pane"
-assert_contains "$(render)" "#[range=user|$plain_pane]" "non-active pane badge"
+out="$(render)"
+assert_contains "$out" "#[range=user|$plain_pane]" "non-active pane badge"
+assert_eq "1" "$(printf '%s' "$out" | grep -o 'work:api' | grep -c .)" "window label appears once"
 
-# Pane title: shown (truncated) when an app or user set one; the default
-# hostname title is noise and stays hidden.
-tmux_t set-option -p -t "$plain_pane" @agent_state idle
+# Pane title: shown (truncated) after the pane's glyph when set; the
+# default hostname title is noise and stays hidden.
+tmux_t set-option -pu -t "$plain_pane" @agent_state
+tmux_t set-option -p -t "$agent_pane" @agent_state running
 tmux_t select-pane -T "fixing the tests" -t "$agent_pane"
-assert_contains "$(render)" "work:api fixing the tests" "set pane title shown"
+assert_contains "$(shown)" "work:api * fixing the tests" "set pane title shown"
 assert_not_contains "$(render)" "$(hostname)" "default hostname title hidden"
 
 # Session prefix only when foreign: with no client every session is foreign
@@ -81,8 +88,8 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do
   sleep 0.2
 done
 [ -n "$client" ] || fail "control client never attached"
-attached="$(tmux_t display-message -p -c "$client" "$format")"
+attached="$(tmux_t display-message -p -c "$client" "$format" | sed 's/#\[[^]]*\]//g')"
 exec 9>&-
-assert_contains "$attached" "api fixing the tests" "local badge keeps window name"
+assert_contains "$attached" "api * fixing the tests" "local badge keeps window name"
 assert_not_contains "$attached" "work:api" "local session prefix hidden"
-assert_contains "$attached" "? home:notes" "foreign session prefix kept"
+assert_contains "$attached" "home:notes ?" "foreign session prefix kept"

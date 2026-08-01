@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Prints the agent bar's status-format string. Pure formats: the S/W/P loops
-# visit every pane in every session; panes with a non-idle @agent_state render
-# one clickable badge (range=user|<pane_id>) with a per-state style and glyph.
+# Prints the agent bar's status-format string. Pure formats: the S/W loops
+# visit every window in every session; windows containing agent panes render
+# ONE dim label followed by a glyph per agent pane (each glyph clickable via
+# range=user|<pane_id>). Windows without agents render nothing. This grouping
+# is the same row structure a vertical status line would use.
 set -u
 
 # Style+glyph chain keyed on @agent_state. #[...] blocks pass through format
@@ -10,16 +12,21 @@ set -u
 # to avoid breaking the surrounding #{?...} alternatives.
 state_mark='#{?#{==:#{@agent_state},needs-input},#[fg=yellow bold]?,#{?#{==:#{@agent_state},error},#[fg=red bold]!,#{?#{==:#{@agent_state},done},#[fg=green]+,#{?#{==:#{@agent_state},subagent-running},#[fg=cyan]**,#{?#{==:#{@agent_state},idle},#[fg=colour243]·,#[fg=cyan]*}}}}}'
 
-# Label: window name; pane title appended (truncated) when something set one
-# (the default title is the hostname — noise); session prefix only when the
-# pane lives outside the viewing client's session.
-session_prefix='#{?#{!=:#{session_name},#{client_session}},#{session_name}:,}'
+# Pane title appended (truncated) when something set one; the default title
+# is the hostname — noise.
 title_suffix='#{?#{&&:#{pane_title},#{!=:#{pane_title},#{host}}}, #{=24:pane_title},}'
 
-badge="#[range=user|#{pane_id}]${state_mark} ${session_prefix}#{window_name}${title_suffix}#[default]#[norange]  "
+# One glyph per agent pane; any set state renders — idle is a live agent
+# waiting (dim). A glyph disappears only when the agent exits or the pane
+# dies.
+pane_glyph="#{?#{@agent_state},#[range=user|#{pane_id}]${state_mark}${title_suffix}#[default]#[norange] ,}"
 
-# Any set state renders — idle is a live agent waiting (dim badge). A badge
-# disappears only when the agent exits (options unset) or the pane dies.
-visible="#{?#{@agent_state},${badge},}"
+# Session prefix only for panes outside the viewing client's session.
+session_prefix='#{?#{!=:#{session_name},#{client_session}},#{session_name}:,}'
 
-printf '#{S:#{W:#{P:%s}}}' "$visible"
+# A window renders only if some pane in it has agent state (the inner P
+# probe emits a marker per agent pane; non-empty means true).
+window_has_agents='#{P:#{?#{@agent_state},x,}}'
+window_group="#{?${window_has_agents},#[fg=colour243]${session_prefix}#{window_name}#[default] #{P:${pane_glyph}} ,}"
+
+printf '#{S:#{W:%s}}' "$window_group"
