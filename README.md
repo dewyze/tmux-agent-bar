@@ -96,7 +96,8 @@ Set options before the plugin loads (re-run `agent-bar.tmux` or
 | `@agent_bar_pane_separator` | ` │ ` | between agents in a group |
 | `@agent_bar_group_separator` | ` ║ ` | opens each window group |
 | `@agent_bar_label_suffix` | *(empty)* | e.g. `:` for colon grammar |
-| `@agent_bar_session_separator` | `/` | foreign-session prefix joiner |
+| `@agent_bar_cross_session` | `inline` | `line`: foreign agents on their own status line, compact; `off`: local only |
+| `@agent_bar_session_marker` | ` ▌ ` | accent marker introducing a foreign session |
 | `@agent_bar_name_max` | `24` | badge-name truncation |
 | `@agent_bar_glyph_<state>` | `* ** ? + ! ·` | per-state glyph overrides |
 | `@agent_bar_trace` | *(unset)* | file path enables hook event tracing |
