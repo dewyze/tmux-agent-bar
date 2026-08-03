@@ -1,25 +1,31 @@
 #!/usr/bin/env bash
-# Prints the agent bar's status-format string. Pure formats: the S/W loops
-# visit every window in every session; windows containing agent panes render
-# ONE dim label, then a leading-separator + glyph per agent pane (each glyph
-# clickable via range=user|<pane_id>). Leading separators can never dangle:
-# the label always precedes the first one. Windows without agents render
-# nothing. This grouping is the row structure a vertical status line would
-# use.
+# Prints the agent bar's status-format string(s). Pure formats: S/W/P loops
+# visit every pane; windows with agent panes render ONE bare label plus a
+# leading-separator + glyph per agent pane (clickable via range=user).
+# Sessions are the top grouping rank: foreign sessions (relative to the
+# viewing client) are introduced by an accent marker + session name once.
 #
-# Every knob is an @agent_bar_* option (see lib/options.sh); defaults follow
-# @agent_bar_theme (ascii | nerdfont). Options are baked at build time.
+# Argument: none -> the primary line; "foreign" -> the secondary line used
+# by cross_session=line mode (compact: marker + session name + bare glyphs).
+#
+# @agent_bar_cross_session: inline (default) — foreign sessions share the
+# primary line; line — primary is local-only, foreign renders on its own
+# line; off — foreign agents are not rendered at all.
+#
+# Every knob is an @agent_bar_* option (see lib/options.sh), baked at build
+# time. Session order is tmux index order (formats cannot sort).
 set -u
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/options.sh"
 
+part="${1:-}"
 theme="$(bar_option theme ascii)"
+mode="$(bar_option cross_session inline)"
 
-# Separator hierarchy: the thin divider separates agents inside a group,
-# the heavy one opens each group. Both are visible characters — spaces are
-# not separators. Group separators LEAD their group (like pane separators
-# lead their glyph) so nothing ever dangles at the end of the bar.
+# Separator hierarchy, all visible characters — spaces are not separators:
+# session marker (accent) > group opener > pane divider. Pane and group
+# separators LEAD what they introduce, so nothing ever dangles.
 # Powerline glyphs are built from bytes, never source literals: they are
 # private-use-area characters that editors and tooling silently drop (this
 # file once shipped with them replaced by spaces, and a test asserting a
@@ -31,17 +37,19 @@ case "$theme" in
   nerdfont)
     default_pane_sep=" ${powerline_thin} "
     default_group_sep=" ${powerline_filled} "
+    default_session_marker=" ${powerline_filled} "
     ;;
   *)
     default_pane_sep=' │ '
     default_group_sep=' ║ '
+    default_session_marker=' ▌ '
     ;;
 esac
 
 pane_sep="$(bar_option pane_separator "$default_pane_sep")"
 group_sep="$(bar_option group_separator "$default_group_sep")"
+session_marker="$(bar_option session_marker "$default_session_marker")"
 label_suffix="$(bar_option label_suffix '')"
-session_sep="$(bar_option session_separator '/')"
 name_max="$(bar_option name_max 24)"
 
 glyph_running="$(bar_option glyph_running '*')"
@@ -60,19 +68,37 @@ state_mark="#{?#{==:#{@agent_state},needs-input},#[fg=yellow bold]${glyph_needs_
 # Badge text after the glyph, strict precedence (SCHEMA.md): our rename
 # (@agent_name) -> the harness (@agent_app) -> nothing. Pane titles and
 # commands never render. Truncated at name_max.
-title_suffix="#{?#{@agent_name}, #{=${name_max}:@agent_name},#{?#{@agent_app}, #{@agent_app},}}"
+name_suffix="#{?#{@agent_name}, #{=${name_max}:@agent_name},#{?#{@agent_app}, #{@agent_app},}}"
 
 # One glyph per agent pane, each led by the pane separator; any set state
 # renders — idle is a live agent waiting (dim). A glyph disappears only when
-# the agent exits or the pane dies.
-pane_glyph="#{?#{@agent_state},#[fg=colour240]${pane_sep}#[default]#[range=user|#{pane_id}]${state_mark}${title_suffix}#[default]#[norange],}"
+# the agent exits or the pane dies. The compact variant (foreign line)
+# drops names.
+pane_glyph="#{?#{@agent_state},#[fg=colour240]${pane_sep}#[default]#[range=user|#{pane_id}]${state_mark}${name_suffix}#[default]#[norange],}"
+compact_glyph="#{?#{@agent_state},#[fg=colour240]${pane_sep}#[default]#[range=user|#{pane_id}]${state_mark}#[default]#[norange],}"
 
-# Session prefix only for panes outside the viewing client's session.
-session_prefix="#{?#{!=:#{session_name},#{client_session}},#{session_name}${session_sep},}"
-
-# A window renders only if some pane in it has agent state (the inner P
-# probe emits a marker per agent pane; non-empty means true).
+# A window renders only if some pane in it has agent state; labels are
+# always bare — session identity lives at the session rank, not repeated
+# per window.
 window_has_agents='#{P:#{?#{@agent_state},x,}}'
-window_group="#{?${window_has_agents},#[fg=colour240]${group_sep}#[default]#[fg=colour243]${session_prefix}#{window_name}${label_suffix}#[default]#{P:${pane_glyph}},}"
+window_group="#{?${window_has_agents},#[fg=colour240]${group_sep}#[default]#[fg=colour243]#{window_name}${label_suffix}#[default]#{P:${pane_glyph}},}"
+windows="#{W:${window_group}}"
 
-printf '#{S:#{W:%s}}' "$window_group"
+session_has_agents='#{W:#{P:#{?#{@agent_state},x,}}}'
+is_local='#{==:#{session_name},#{client_session}}'
+
+# Foreign session intro: accent marker + name once. Accent colour is a
+# placeholder until the colours pass.
+session_intro="#[fg=colour109 bold]${session_marker}#[default]#[fg=colour109]#{session_name}#[default]"
+inline_foreign="#{?${session_has_agents},${session_intro}${windows},}"
+compact_foreign="#{?${session_has_agents},${session_intro}#{W:#{P:${compact_glyph}}},}"
+
+if [ "$part" = "foreign" ]; then
+  printf '#{S:#{?%s,,%s}}' "$is_local" "$compact_foreign"
+  exit 0
+fi
+
+case "$mode" in
+  inline) printf '#{S:#{?%s,%s,%s}}' "$is_local" "$windows" "$inline_foreign" ;;
+  *)      printf '#{S:#{?%s,%s,}}' "$is_local" "$windows" ;;
+esac

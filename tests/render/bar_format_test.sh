@@ -40,23 +40,23 @@ tmux_t set-option -p -t "$agent_pane" @agent_state running
 out="$(render)"
 assert_contains "$out" "#[range=user|$agent_pane]" "range opens with pane id"
 assert_contains "$out" "#[norange]" "range closes"
-assert_contains "$out" "work/api" "session-prefixed label"
+assert_contains "$(shown)" "▌ work ║ api" "foreign session intro + bare label"
 assert_not_contains "$out" "home:notes" "stateless pane renders nothing"
 
 # States get distinct glyphs; the window label leads its group
 tmux_t set-option -p -t "$agent_pane" @agent_state needs-input
-assert_contains "$(shown)" "work/api │ ?" "needs-input glyph"
+assert_contains "$(shown)" "api │ ?" "needs-input glyph"
 tmux_t set-option -p -t "$agent_pane" @agent_state done
-assert_contains "$(shown)" "work/api │ +" "done glyph"
+assert_contains "$(shown)" "api │ +" "done glyph"
 tmux_t set-option -p -t "$agent_pane" @agent_state error
-assert_contains "$(shown)" "work/api │ !" "error glyph"
+assert_contains "$(shown)" "api │ !" "error glyph"
 tmux_t set-option -p -t "$agent_pane" @agent_state subagent-running
-assert_contains "$(shown)" "work/api │ **" "subagent glyph"
+assert_contains "$(shown)" "api │ **" "subagent glyph"
 
 # idle is a live agent waiting for input: dim badge, still clickable —
 # only an unset state (agent gone) renders nothing
 tmux_t set-option -p -t "$agent_pane" @agent_state idle
-assert_contains "$(shown)" "work/api │ ·" "idle renders dim badge"
+assert_contains "$(shown)" "api │ ·" "idle renders dim badge"
 assert_contains "$(render)" "#[range=user|$agent_pane]" "idle badge clickable"
 tmux_t set-option -pu -t "$agent_pane" @agent_state
 assert_eq "" "$(render | tr -d ' ')" "unset state renders nothing"
@@ -68,8 +68,9 @@ tmux_t set-option -p -t "$home_pane" @agent_state needs-input
 out="$(render)"
 assert_contains "$out" "#[range=user|$agent_pane]" "first badge range"
 assert_contains "$out" "#[range=user|$home_pane]" "second badge range"
-assert_contains "$(shown)" "║ work/api │ *" "first group opened by group bar"
-assert_contains "$(shown)" "║ home/notes │ ?" "second group opened by group bar"
+assert_contains "$(shown)" "║ api │ *" "first group opened by group bar"
+assert_contains "$(shown)" "║ notes │ ?" "second group opened by group bar"
+assert_contains "$(shown)" "▌ home" "second session introduced once"
 assert_eq "2" "$(shown | grep -o '║' | grep -c .)" "one group bar per group, none dangling"
 
 # Agents in the same window group under ONE label: win label once, one
@@ -78,7 +79,7 @@ tmux_t set-option -p -t "$plain_pane" @agent_state running
 tmux_t select-pane -t "$agent_pane"
 out="$(render)"
 assert_contains "$out" "#[range=user|$plain_pane]" "non-active pane badge"
-assert_eq "1" "$(printf '%s' "$out" | grep -o 'work/api' | grep -c .)" "window label appears once"
+assert_eq "1" "$(shown | grep -o ' api ' | grep -c .)" "window label appears once"
 
 # Badge text precedence: our name -> harness name -> nothing. Pane
 # titles and commands never render.
@@ -89,7 +90,7 @@ assert_not_contains "$(shown)" "fixing the tests" "pane title never renders"
 assert_not_contains "$(render)" "$(hostname)" "hostname never renders"
 
 tmux_t set-option -p -t "$agent_pane" @agent_app claude
-assert_contains "$(shown)" "work/api │ * claude" "harness name is the default"
+assert_contains "$(shown)" "api │ * claude" "harness name is the default"
 tmux_t set-option -p -t "$agent_pane" @agent_name "reviewer"
 assert_contains "$(shown)" "* reviewer" "our name beats harness name"
 assert_not_contains "$(shown)" "claude" "rename replaces harness name"
@@ -111,5 +112,5 @@ done
 attached="$(tmux_t display-message -p -c "$client" "$format" | sed 's/#\[[^]]*\]//g')"
 exec 9>&-
 assert_contains "$attached" "api │ *" "local badge keeps window name"
-assert_not_contains "$attached" "work/api" "local session prefix hidden"
-assert_contains "$attached" "home/notes │ ?" "foreign session prefix kept"
+assert_not_contains "$attached" "▌ work" "local session never marked"
+assert_contains "$attached" "▌ home ║ notes │ ?" "foreign session marked"

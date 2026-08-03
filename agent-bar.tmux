@@ -6,10 +6,17 @@ set -u
 CURRENT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 . "$CURRENT_DIR/lib/options.sh"
 
-# The bar claims status line @agent_bar_line (default 1). Raise the status
-# line count to fit it, but leave users already running more lines alone.
+# The bar claims status line @agent_bar_line (default 1) — plus the next
+# line when cross_session=line mode puts foreign agents on their own row.
+# Raise the status line count to fit, but leave users already running more
+# lines alone.
 line="$(bar_option line 1)"
-needed=$((line + 1))
+mode="$(bar_option cross_session inline)"
+if [ "$mode" = "line" ]; then
+  needed=$((line + 2))
+else
+  needed=$((line + 1))
+fi
 status="$(tmux show-options -gv status 2>/dev/null || true)"
 case "$status" in
   [0-9]) [ "$status" -ge "$needed" ] || tmux set-option -g status "$needed" ;;
@@ -17,6 +24,11 @@ case "$status" in
 esac
 
 tmux set-option -g "status-format[$line]" "$(bash "$CURRENT_DIR/lib/bar-format.sh")"
+if [ "$mode" = "line" ]; then
+  tmux set-option -g "status-format[$((line + 1))]" "$(bash "$CURRENT_DIR/lib/bar-format.sh" foreign)"
+else
+  tmux set-option -gu "status-format[$((line + 1))]" 2>/dev/null || true
+fi
 
 # Mouse bindings. Guards dispatch badge clicks (the bar's line, a range
 # naming a pane id); the else-arms REPLAY tmux's default bindings verbatim
@@ -25,17 +37,24 @@ tmux set-option -g "status-format[$line]" "$(bash "$CURRENT_DIR/lib/bar-format.s
 # tmux's native {} quoting beats bash escaping for the nested menu.
 # @agent_bar_mouse off leaves the mouse keys entirely untouched.
 if [ "$(bar_option mouse on)" != "off" ]; then
+  # Badge clicks land on the bar's line — or either of its two lines in
+  # cross_session=line mode.
+  if [ "$mode" = "line" ]; then
+    on_bar="#{||:#{==:#{mouse_status_line},$line},#{==:#{mouse_status_line},$((line + 1))}}"
+  else
+    on_bar="#{==:#{mouse_status_line},$line}"
+  fi
   bindings="$CURRENT_DIR/.bindings.generated.conf"
   cat > "$bindings" <<EOF
 bind-key -n MouseDown1Status {
-  if-shell -F "#{&&:#{==:#{mouse_status_line},$line},#{m/r:^%[0-9]+\$,#{mouse_status_range}}}" {
+  if-shell -F "#{&&:${on_bar},#{m/r:^%[0-9]+\$,#{mouse_status_range}}}" {
     run-shell "$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'"
   } {
     switch-client -t=
   }
 }
 bind-key -n MouseDown3Status {
-  if-shell -F "#{&&:#{==:#{mouse_status_line},$line},#{m/r:^%[0-9]+\$,#{mouse_status_range}}}" {
+  if-shell -F "#{&&:${on_bar},#{m/r:^%[0-9]+\$,#{mouse_status_range}}}" {
     display-menu -O -T 'Agent: #{S:#{W:#{P:#{?#{==:#{pane_id},#{mouse_status_range}},#{?#{@agent_name},#{@agent_name},#{@agent_app}},}}}}' -x M -y M \\
       'Jump' j "run-shell \\"$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'\\"" \\
       'Clear status' c "set-option -p -t '#{mouse_status_range}' @agent_state idle" \\

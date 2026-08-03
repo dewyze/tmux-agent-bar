@@ -28,7 +28,7 @@ run_plugin() {
 run_plugin "on"
 log="$(cat "$STUB_LOG")"
 assert_contains "$log" "set-option -g status 2" "status raised to 2"
-assert_contains "$log" "set-option -g status-format[1] #{S:#{W:" "bar format installed"
+assert_contains "$log" "set-option -g status-format[1] #{S:" "bar format installed"
 # Mouse bindings are generated as a tmux conf fragment (native {} quoting)
 # and sourced; non-badge clicks must fall through to replayed tmux defaults.
 assert_contains "$log" "source-file" "bindings fragment sourced"

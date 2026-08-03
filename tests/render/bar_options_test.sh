@@ -40,12 +40,12 @@ tmux_t set-option -pu -t "$pane" @agent_name
 
 # Label suffix restores the colon grammar
 tmux_t set-option -g @agent_bar_label_suffix ":"
-assert_contains "$(shown)" "work/api:" "label suffix"
+assert_contains "$(shown)" "api:" "label suffix"
 tmux_t set-option -gu @agent_bar_label_suffix
 
 # Pane separator override
 tmux_t set-option -g @agent_bar_pane_separator " >> "
-assert_contains "$(shown)" "work/api >> *" "pane separator override"
+assert_contains "$(shown)" "api >> *" "pane separator override"
 tmux_t set-option -gu @agent_bar_pane_separator
 
 # Nerdfont theme swaps in powerline dividers. The glyphs are PUA chars
@@ -58,7 +58,8 @@ assert_contains "$(shown)" "$powerline_thin" "nerdfont thin divider"
 assert_not_contains "$(shown)" "│" "ascii divider replaced"
 tmux_t set-option -gu @agent_bar_theme
 
-# Session separator override
-tmux_t set-option -g @agent_bar_session_separator "."
-assert_contains "$(shown)" "work.api" "session separator override"
-tmux_t set-option -gu @agent_bar_session_separator
+# Session marker override (no client in this context -> session is foreign)
+assert_contains "$(shown)" "▌ work" "default session marker"
+tmux_t set-option -g @agent_bar_session_marker " >S "
+assert_contains "$(shown)" ">S work" "session marker override"
+tmux_t set-option -gu @agent_bar_session_marker
