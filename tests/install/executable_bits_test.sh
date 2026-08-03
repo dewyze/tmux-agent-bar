@@ -10,6 +10,7 @@ for script in \
   "$ROOT_DIR/scripts/jump.sh" \
   "$ROOT_DIR/scripts/verify-needs-input.sh" \
   "$ROOT_DIR/scripts/reset.sh" \
+  "$ROOT_DIR/scripts/adopt-theme.sh" \
   "$ROOT_DIR/scripts/install-claude-hooks.sh"; do
   [ -x "$script" ] || fail "not executable: $script"
 done

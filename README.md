@@ -100,6 +100,13 @@ Set options before the plugin loads (re-run `agent-bar.tmux` or
 | `@agent_bar_session_marker` | ` ▌ ` | accent marker introducing a foreign session |
 | `@agent_bar_name_max` | `24` | badge-name truncation |
 | `@agent_bar_glyph_<state>` | `* ** ? + ! ·` | per-state glyph overrides |
+| `@agent_bar_style_window` | `fg=colour243` | inactive window-group style (space-separated) |
+| `@agent_bar_style_window_active` | `fg=colour250 bold` | active window-group style — follows the active window |
+| `@agent_bar_accent` | `colour109` | session marker/name colour |
+
+`scripts/adopt-theme.sh` infers the three style options from your existing
+`window-status-format`s and `status-left`, applies them, and prints the
+lines to add to tmux.conf.
 | `@agent_bar_trace` | *(unset)* | file path enables hook event tracing |
 
 ## Adding another agent

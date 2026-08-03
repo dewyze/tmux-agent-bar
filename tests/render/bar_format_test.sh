@@ -98,6 +98,50 @@ tmux_t set-option -pu -t "$agent_pane" @agent_name
 assert_contains "$(shown)" "* claude" "falls back to harness name"
 tmux_t set-option -pu -t "$agent_pane" @agent_app
 
+# Active-window styling: the active window's group takes
+# @agent_bar_style_window_active, others @agent_bar_style_window; follows
+# the active window, and the style is re-emitted after each glyph so a
+# background survives the whole group.
+tmux_t new-window -t work -n db
+db_pane="$(tmux_t list-panes -t work:db -F '#{pane_id}')"
+tmux_t set-option -p -t "$db_pane" @agent_state running
+tmux_t set-option -p -t "$agent_pane" @agent_state running
+tmux_t set-option -g @agent_bar_style_window "fg=colour254 bg=colour236"
+tmux_t set-option -g @agent_bar_style_window_active "fg=colour255 bg=colour239"
+tmux_t select-window -t work:api
+fmt="$(bash "$ROOT_DIR/lib/bar-format.sh")"
+styled() { tmux_t display-message -p "$fmt"; }
+out="$(styled)"
+case "$out" in
+  *"#[fg=colour255 bg=colour239]"*) ;;
+  *) fail "active style token missing: $out" ;;
+esac
+case "$out" in
+  *"#[fg=colour254 bg=colour236]"*) ;;
+  *) fail "inactive style token missing: $out" ;;
+esac
+active_count="$(printf '%s' "$out" | grep -o 'fg=colour255 bg=colour239' | grep -c .)"
+[ "$active_count" -ge 2 ] || fail "active style not re-emitted after glyphs ($active_count)"
+tmux_t select-window -t work:db
+out2="$(styled)"
+api_pos="${out2%%api*}"; db_pos="${out2%%db*}"
+case "${out2#*db}" in
+  *""*) ;; *) : ;;
+esac
+# api inactive now, db active: the token preceding each label must differ
+case "$out2" in
+  *"#[fg=colour255 bg=colour239]db"*|*"colour239]#{"*) ;;
+  *) case "$out2" in
+       *"bg=colour239"*) ;;
+       *) fail "active style did not follow selection: $out2" ;;
+     esac ;;
+esac
+tmux_t set-option -gu @agent_bar_style_window
+tmux_t set-option -gu @agent_bar_style_window_active
+tmux_t set-option -pu -t "$db_pane" @agent_state
+tmux_t kill-window -t work:db
+tmux_t select-window -t work:api
+
 # Session prefix only when foreign: with no client every session is foreign
 # (asserted above via work:api); with a client attached to work, work drops
 # the prefix and home keeps it.

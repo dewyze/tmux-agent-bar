@@ -63,3 +63,12 @@ assert_contains "$(shown)" "▌ work" "default session marker"
 tmux_t set-option -g @agent_bar_session_marker " >S "
 assert_contains "$(shown)" ">S work" "session marker override"
 tmux_t set-option -gu @agent_bar_session_marker
+
+# Accent option colours the session marker
+tmux_t set-option -g @agent_bar_accent colour111
+raw="$(tmux_t display-message -p "$(bash "$ROOT_DIR/lib/bar-format.sh")")"
+case "$raw" in
+  *"fg=colour111"*) ;;
+  *) fail "accent option not applied: $raw" ;;
+esac
+tmux_t set-option -gu @agent_bar_accent

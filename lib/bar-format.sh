@@ -51,6 +51,14 @@ group_sep="$(bar_option group_separator "$default_group_sep")"
 session_marker="$(bar_option session_marker "$default_session_marker")"
 label_suffix="$(bar_option label_suffix '')"
 name_max="$(bar_option name_max 24)"
+accent="$(bar_option accent colour109)"
+
+# Window-group styles (space-separated style syntax — commas would split
+# the surrounding conditionals). scripts/adopt-theme.sh infers these from
+# the user's existing status line; defaults are theme-neutral placeholders
+# until the colours pass.
+style_window="$(bar_option style_window 'fg=colour243')"
+style_window_active="$(bar_option style_window_active 'fg=colour250 bold')"
 
 glyph_running="$(bar_option glyph_running '*')"
 glyph_subagent="$(bar_option glyph_subagent_running '**')"
@@ -74,14 +82,18 @@ name_suffix="#{?#{@agent_name}, #{=${name_max}:@agent_name},#{?#{@agent_app}, #{
 # renders — idle is a live agent waiting (dim). A glyph disappears only when
 # the agent exits or the pane dies. The compact variant (foreign line)
 # drops names.
-pane_glyph="#{?#{@agent_state},#[fg=colour240]${pane_sep}#[default]#[range=user|#{pane_id}]${state_mark}${name_suffix}#[default]#[norange],}"
+# Inside a styled group, glyphs restore the group style (not #[default])
+# after each badge so a group background survives the whole run; separators
+# change only fg, so the background persists across them too.
+wstyle="#{?window_active,#[${style_window_active}],#[${style_window}]}"
+grouped_glyph="#{?#{@agent_state},#[fg=colour240]${pane_sep}#[range=user|#{pane_id}]${state_mark}${name_suffix}#[nobold]${wstyle}#[norange],}"
 compact_glyph="#{?#{@agent_state},#[fg=colour240]${pane_sep}#[default]#[range=user|#{pane_id}]${state_mark}#[default]#[norange],}"
 
 # A window renders only if some pane in it has agent state; labels are
 # always bare — session identity lives at the session rank, not repeated
 # per window.
 window_has_agents='#{P:#{?#{@agent_state},x,}}'
-window_group="#{?${window_has_agents},#[fg=colour240]${group_sep}#[default]#[fg=colour243]#{window_name}${label_suffix}#[default]#{P:${pane_glyph}},}"
+window_group="#{?${window_has_agents},#[fg=colour240]${group_sep}#[default]${wstyle}#{window_name}${label_suffix}#{P:${grouped_glyph}}#[default],}"
 windows="#{W:${window_group}}"
 
 session_has_agents='#{W:#{P:#{?#{@agent_state},x,}}}'
@@ -89,7 +101,7 @@ is_local='#{==:#{session_name},#{client_session}}'
 
 # Foreign session intro: accent marker + name once. Accent colour is a
 # placeholder until the colours pass.
-session_intro="#[fg=colour109 bold]${session_marker}#[default]#[fg=colour109]#{session_name}#[default]"
+session_intro="#[fg=${accent} bold]${session_marker}#[default]#[fg=${accent}]#{session_name}#[default]"
 inline_foreign="#{?${session_has_agents},${session_intro}${windows},}"
 compact_foreign="#{?${session_has_agents},${session_intro}#{W:#{P:${compact_glyph}}},}"
 
