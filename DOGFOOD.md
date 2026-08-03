@@ -11,13 +11,13 @@ since, plus the two items round 1 left unchecked.
 
 ## Rendering & grouping
 
-- [ ] Bar reads `║ win │ * claude ...` — heavy bar opens each window group,
+- [x] Bar reads `║ win │ * claude ...` — heavy bar opens each window group,
       thin divider before each agent, no whitespace-only separators anywhere
-- [ ] Nerdfont theme active (from tmux.conf): dividers are powerline
+- [x] Nerdfont theme active (from tmux.conf): dividers are powerline
       chevrons ( filled for groups,  thin for panes), not `║`/`│`
-- [ ] Two agents in one window → one window label, two glyphs inside the
+- [x] Two agents in one window → one window label, two glyphs inside the
       group, each independently clickable
-- [ ] Badge text is `claude` by default — never a pane title, never a
+- [x] Badge text is `claude` by default — never a pane title, never a
       command, never a hostname
 - [ ] Rename (right-click → Rename, or `tmux set -p @agent_name reviewer`)
       → badge text becomes the name; empty rename → back to `claude`
