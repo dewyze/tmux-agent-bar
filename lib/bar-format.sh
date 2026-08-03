@@ -59,6 +59,25 @@ accent="$(bar_option accent colour109)"
 # until the colours pass.
 style_window="$(bar_option style_window 'fg=colour243')"
 style_window_active="$(bar_option style_window_active 'fg=colour250 bold')"
+status_bg="$(bar_option status_bg '')"
+
+# Segment mode: nerdfont theme + both window styles carrying backgrounds +
+# a known status background. Groups render as true powerline segments with
+# transition chevrons (old bg over new bg) at both edges. Thin dividers
+# default to a contrasting fg there — colour240 vanishes against gray
+# segment backgrounds.
+bg_of() { case "$1" in *bg=*) v="${1##*bg=}"; printf '%s' "${v%% *}" ;; esac; }
+bg_active="$(bg_of "$style_window_active")"
+bg_inactive="$(bg_of "$style_window")"
+segments=0
+if [ "$theme" = nerdfont ] && [ -n "$status_bg" ] && [ -n "$bg_active" ] && [ -n "$bg_inactive" ]; then
+  segments=1
+fi
+if [ "$segments" = 1 ]; then
+  divider_fg="$(bar_option divider_fg 'colour245')"
+else
+  divider_fg="$(bar_option divider_fg 'colour240')"
+fi
 
 glyph_running="$(bar_option glyph_running '*')"
 glyph_subagent="$(bar_option glyph_subagent_running '**')"
@@ -86,14 +105,20 @@ name_suffix="#{?#{@agent_name}, #{=${name_max}:@agent_name},#{?#{@agent_app}, #{
 # after each badge so a group background survives the whole run; separators
 # change only fg, so the background persists across them too.
 wstyle="#{?window_active,#[${style_window_active}],#[${style_window}]}"
-grouped_glyph="#{?#{@agent_state},#[fg=colour240]${pane_sep}#[range=user|#{pane_id}]${state_mark}${name_suffix}#[nobold]${wstyle}#[norange],}"
-compact_glyph="#{?#{@agent_state},#[fg=colour240]${pane_sep}#[default]#[range=user|#{pane_id}]${state_mark}#[default]#[norange],}"
+grouped_glyph="#{?#{@agent_state},#[fg=${divider_fg}]${pane_sep}#[range=user|#{pane_id}]${state_mark}${name_suffix}#[nobold]${wstyle}#[norange],}"
+compact_glyph="#{?#{@agent_state},#[fg=${divider_fg}]${pane_sep}#[default]#[range=user|#{pane_id}]${state_mark}#[default]#[norange],}"
 
 # A window renders only if some pane in it has agent state; labels are
 # always bare — session identity lives at the session rank, not repeated
 # per window.
 window_has_agents='#{P:#{?#{@agent_state},x,}}'
-window_group="#{?${window_has_agents},#[fg=colour240]${group_sep}#[default]${wstyle}#{window_name}${label_suffix}#{P:${grouped_glyph}}#[default],}"
+if [ "$segments" = 1 ]; then
+  seg_in="#{?window_active,#[fg=${status_bg} bg=${bg_active}],#[fg=${status_bg} bg=${bg_inactive}]}${powerline_filled}"
+  seg_out="#{?window_active,#[fg=${bg_active} bg=${status_bg}],#[fg=${bg_inactive} bg=${status_bg}]}${powerline_filled}#[default]"
+  window_group="#{?${window_has_agents}, ${seg_in}${wstyle} #{window_name}${label_suffix}#{P:${grouped_glyph}} ${seg_out},}"
+else
+  window_group="#{?${window_has_agents},#[fg=${divider_fg}]${group_sep}#[default]${wstyle}#{window_name}${label_suffix}#{P:${grouped_glyph}}#[default],}"
+fi
 windows="#{W:${window_group}}"
 
 session_has_agents='#{W:#{P:#{?#{@agent_state},x,}}}'

@@ -103,6 +103,8 @@ Set options before the plugin loads (re-run `agent-bar.tmux` or
 | `@agent_bar_style_window` | `fg=colour243` | inactive window-group style (space-separated) |
 | `@agent_bar_style_window_active` | `fg=colour250 bold` | active window-group style — follows the active window |
 | `@agent_bar_accent` | `colour109` | session marker/name colour |
+| `@agent_bar_status_bg` | *(unset)* | status-line bg; with nerdfont + bg styles, enables powerline segment transitions |
+| `@agent_bar_divider_fg` | `colour240` / `colour245` | thin-divider colour (brighter default in segment mode) |
 
 `scripts/adopt-theme.sh` infers the three style options from your existing
 `window-status-format`s and `status-left`, applies them, and prints the

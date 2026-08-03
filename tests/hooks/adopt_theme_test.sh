@@ -24,10 +24,12 @@ tmux_t new-session -d -x 80 -y 24
 tmux_t setw -g window-status-format "#[fg=colour254,bg=colour236] #I #[fg=colour254,bg=colour236] #W "
 tmux_t setw -g window-status-current-format "#[fg=colour236,bg=colour239,nobold]#[fg=colour255,bg=colour239] #I #W #[fg=colour239,bg=colour236,nobold]"
 tmux_t set -g status-left "#[fg=colour235,bg=colour109,bold] #S #[fg=colour109,bg=colour236]"
+tmux_t set -g status-style "bg=colour236,fg=colour254"
 
 out="$(bash "$ROOT_DIR/scripts/adopt-theme.sh")"
 
 assert_eq "fg=colour254 bg=colour236" "$(tmux_t show -gv @agent_bar_style_window)" "inactive inferred"
 assert_eq "fg=colour255 bg=colour239" "$(tmux_t show -gv @agent_bar_style_window_active)" "active inferred (last block before #I)"
 assert_eq "colour109" "$(tmux_t show -gv @agent_bar_accent)" "accent from status-left bg"
+assert_eq "colour236" "$(tmux_t show -gv @agent_bar_status_bg)" "status bg inferred"
 assert_contains "$out" 'set -g @agent_bar_style_window' "prints conf lines"
