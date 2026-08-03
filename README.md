@@ -133,6 +133,42 @@ tmux set-option -p -t "$TMUX_PANE" @agent_schema 1 \; \
   set-option -p -t "$TMUX_PANE" @agent_updated "$(date +%s)"
 ```
 
+## Recipes: agent state in your own status line
+
+The schema is readable from any tmux format — these need nothing from the
+plugin's bar (all verified against a live server). The building block is a
+pane probe: "does any pane in this window have agent state X":
+
+```
+#{?#{P:#{?#{==:#{@agent_state},needs-input},x,}},<yes>,<no>}
+```
+
+**Window-list flag** — a dot in your `window-status-format` when a window
+contains an agent waiting for input (style attrs inside conditionals use
+spaces, never commas — commas would split the conditional):
+
+```tmux
+setw -g window-status-format ' #I #{?#{P:#{?#{==:#{@agent_state},needs-input},x,}},#[fg=yellow bold]● #[default],}#W '
+```
+
+**Status-corner aggregate** — "any agent anywhere needs me", for
+`status-left`/`status-right` (spans all sessions):
+
+```tmux
+set -ga status-right '#{?#{S:#{W:#{P:#{?#{==:#{@agent_state},needs-input},x,}}}},#[fg=yellow bold] ● agents ,}'
+```
+
+**Pane border badge** — the agent's state on its own pane border:
+
+```tmux
+set -g pane-border-status top
+set -g pane-border-format ' #{pane_index} #{?#{@agent_state},#[fg=cyan]#{@agent_state} ,}'
+```
+
+Note: a bare `#{@agent_state}` in a window-list entry resolves against that
+window's *active pane* only — the `#{P:...}` probe is what makes it "any
+pane in the window".
+
 ## Development
 
 ```sh
