@@ -115,9 +115,9 @@ window_has_agents='#{P:#{?#{@agent_state},x,}}'
 if [ "$segments" = 1 ]; then
   seg_in="#{?window_active,#[fg=${status_bg} bg=${bg_active}],#[fg=${status_bg} bg=${bg_inactive}]}${powerline_filled}"
   seg_out="#{?window_active,#[fg=${bg_active} bg=${status_bg}],#[fg=${bg_inactive} bg=${status_bg}]}${powerline_filled}#[default]"
-  window_group="#{?${window_has_agents}, ${seg_in}${wstyle} #{window_name}${label_suffix}#{P:${grouped_glyph}} ${seg_out},}"
+  window_group="#{?${window_has_agents}, ${seg_in}${wstyle} #[range=user|#{window_id}]#{window_name}${label_suffix}#[norange]#{P:${grouped_glyph}} ${seg_out},}"
 else
-  window_group="#{?${window_has_agents},#[fg=${divider_fg}]${group_sep}#[default]${wstyle}#{window_name}${label_suffix}#{P:${grouped_glyph}}#[default],}"
+  window_group="#{?${window_has_agents},#[fg=${divider_fg}]${group_sep}#[default]${wstyle}#[range=user|#{window_id}]#{window_name}${label_suffix}#[norange]#{P:${grouped_glyph}}#[default],}"
 fi
 windows="#{W:${window_group}}"
 
@@ -126,7 +126,7 @@ is_local='#{==:#{session_name},#{client_session}}'
 
 # Foreign session intro: accent marker + name once. Accent colour is a
 # placeholder until the colours pass.
-session_intro="#[fg=${accent} bold]${session_marker}#[default]#[fg=${accent}]#{session_name}#[default]"
+session_intro="#[fg=${accent} bold]${session_marker}#[default]#[fg=${accent}]#[range=user|#{session_id}]#{session_name}#[norange]#[default]"
 inline_foreign="#{?${session_has_agents},${session_intro}${windows},}"
 compact_foreign="#{?${session_has_agents},${session_intro}#{W:#{P:${compact_glyph}}},}"
 

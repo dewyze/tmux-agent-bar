@@ -45,6 +45,19 @@ assert_eq "$(tmux_t display-message -p -t "$target" '#{window_id}')" \
   "$(tmux_t display-message -p -t home: '#{window_id}')" "session current window"
 assert_eq "$target" "$(tmux_t list-panes -t home:notes -F '#{pane_id}#{?pane_active,*,}' | grep '\*$' | tr -d '*')" "pane active"
 
+# Window target: lands on that window, preserving ITS last-active pane
+win_target="$(tmux_t display-message -p -t work:db '#{window_id}')"
+db_panes_before="$(tmux_t list-panes -t work:db -F '#{pane_id}#{?pane_active,*,}')"
+bash "$ROOT_DIR/scripts/jump.sh" "$win_target"
+assert_eq "work" "$(tmux_t list-clients -F '#{client_session}')" "window jump switches session"
+assert_eq "$win_target" "$(tmux_t display-message -p -t work: '#{window_id}')" "window selected"
+assert_eq "$db_panes_before" "$(tmux_t list-panes -t work:db -F '#{pane_id}#{?pane_active,*,}')" "window active pane preserved"
+
+# Session target: lands on that session's current window
+sess_target="$(tmux_t display-message -p -t home: '#{session_id}')"
+bash "$ROOT_DIR/scripts/jump.sh" "$sess_target"
+assert_eq "home" "$(tmux_t list-clients -F '#{client_session}')" "session jump switches"
+
 # Garbage input is rejected without touching tmux
 before="$(tmux_t list-clients -F '#{client_session}')"
 bash "$ROOT_DIR/scripts/jump.sh" "not-a-pane" && fail "jump.sh should exit non-zero on bad input"

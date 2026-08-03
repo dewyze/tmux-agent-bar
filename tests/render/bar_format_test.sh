@@ -39,8 +39,12 @@ assert_eq "" "$(render | tr -d ' ')" "empty bar without agents"
 tmux_t set-option -p -t "$agent_pane" @agent_state running
 out="$(render)"
 assert_contains "$out" "#[range=user|$agent_pane]" "range opens with pane id"
+win_id="$(tmux_t display-message -p -t work:api '#{window_id}')"
+assert_contains "$out" "#[range=user|$win_id]" "window label clickable"
 assert_contains "$out" "#[norange]" "range closes"
 assert_contains "$(shown)" "▌ work ║ api" "foreign session intro + bare label"
+sess_id="$(tmux_t display-message -p -t work: '#{session_id}')"
+assert_contains "$(render)" "#[range=user|$sess_id]" "session name clickable"
 assert_not_contains "$out" "home:notes" "stateless pane renders nothing"
 
 # States get distinct glyphs; the window label leads its group

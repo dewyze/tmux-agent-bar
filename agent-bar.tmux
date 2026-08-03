@@ -47,7 +47,7 @@ if [ "$(bar_option mouse on)" != "off" ]; then
   bindings="$CURRENT_DIR/.bindings.generated.conf"
   cat > "$bindings" <<EOF
 bind-key -n MouseDown1Status {
-  if-shell -F "#{&&:${on_bar},#{m/r:^%[0-9]+\$,#{mouse_status_range}}}" {
+  if-shell -F "#{&&:${on_bar},#{m/r:^[%@$][0-9]+\$,#{mouse_status_range}}}" {
     run-shell "$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'"
   } {
     switch-client -t=
