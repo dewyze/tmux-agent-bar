@@ -55,7 +55,7 @@ bind-key -n MouseDown1Status {
 }
 bind-key -n MouseDown3Status {
   if-shell -F "#{&&:${on_bar},#{m/r:^%[0-9]+\$,#{mouse_status_range}}}" {
-    display-menu -O -T 'Agent: #{S:#{W:#{P:#{?#{==:#{pane_id},#{mouse_status_range}},#{?#{@agent_name},#{@agent_name},#{@agent_app}},}}}}' -x M -y M \\
+    display-menu -O -T 'Agent: #{S:#{W:#{P:#{?#{==:#{pane_id},#{mouse_status_range}},#{?#{@agent_name},#{@agent_name},#{@agent_app}},}}}}' -x M -y S \\
       'Jump' j "run-shell \\"$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'\\"" \\
       'Clear status' c "set-option -p -t '#{mouse_status_range}' @agent_state idle" \\
       'Rename' n "command-prompt -p 'Agent name:' { set-option -p -t '#{mouse_status_range}' @agent_name '%%' }" \\
