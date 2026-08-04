@@ -58,6 +58,15 @@ assert_contains "$out" "#[range=user|$foreign_pane]" "foreign pane range kept"
 win_id="$(tmux_t display-message -p -t work:api '#{window_id}')"
 assert_contains "$out" "#[range=user|$win_id]" "window label range kept"
 
+# Hierarchy indent: local windows flat with 2-space pane rows; foreign
+# windows (under their session header) indent 2, their panes 4
+assert_contains "$out" "#[nl]  #[range=user|$local_pane]" "local pane 2-space indent"
+case "$out" in
+  *"#[nl]  #["*) ;;
+  *) fail "foreign window row not indented: $out" ;;
+esac
+assert_contains "$out" "#[nl]    #[range=user|$foreign_pane]" "foreign pane 4-space indent"
+
 # cross_session off still filters foreign in vertical
 tmux_t set-option -g @agent_bar_cross_session off
 off_fmt="$(bash "$ROOT_DIR/lib/bar-format.sh")"

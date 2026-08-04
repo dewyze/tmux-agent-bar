@@ -136,15 +136,19 @@ compact_foreign="#{?${session_has_agents},${session_intro}#{W:#{P:${compact_glyp
 # rows, an accent header row per foreign session. No horizontal separators
 # or segments; the side bar has its own affordances.
 if [ "$position" != "status" ]; then
-  v_badge="#{?#{@agent_state},  #[range=user|#{pane_id}]${state_mark}${name_suffix}#[default]#[norange]#[nl],}"
-  v_window="#{?${window_has_agents},${wstyle}#[range=user|#{window_id}]#{window_name}${label_suffix}#[norange]#[default]#[nl]#{P:${v_badge}},}"
-  v_windows="#{W:${v_window}}"
+  # Hierarchy indent: local windows sit flat (no header above them), their
+  # panes at 2 spaces; foreign windows indent 2 under their session header,
+  # their panes 4.
+  v_badge() { printf '#{?#{@agent_state},%s#[range=user|#{pane_id}]%s%s#[default]#[norange]#[nl],}' "$1" "${state_mark}" "${name_suffix}"; }
+  v_window() { printf '#{?%s,%s%s#[range=user|#{window_id}]#{window_name}%s#[norange]#[default]#[nl]#{P:%s},}' "${window_has_agents}" "$1" "${wstyle}" "${label_suffix}" "$(v_badge "$2")"; }
+  v_windows_local="#{W:$(v_window '' '  ')}"
+  v_windows_foreign="#{W:$(v_window '  ' '    ')}"
   v_header="#[fg=${accent} bold]${session_marker}#[default]#[fg=${accent}]#[range=user|#{session_id}]#{session_name}#[norange]#[default]#[nl]"
-  v_foreign="#{?${session_has_agents},${v_header}${v_windows},}"
+  v_foreign="#{?${session_has_agents},${v_header}${v_windows_foreign},}"
   if [ "$mode" = "off" ]; then
-    printf '#{S:#{?%s,%s,}}' "$is_local" "$v_windows"
+    printf '#{S:#{?%s,%s,}}' "$is_local" "$v_windows_local"
   else
-    printf '#{S:#{?%s,%s,%s}}' "$is_local" "$v_windows" "$v_foreign"
+    printf '#{S:#{?%s,%s,%s}}' "$is_local" "$v_windows_local" "$v_foreign"
   fi
   exit 0
 fi
