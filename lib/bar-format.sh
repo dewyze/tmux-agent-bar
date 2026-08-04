@@ -21,6 +21,7 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 
 part="${1:-}"
 theme="$(bar_option theme ascii)"
+position="${AGENT_BAR_FORCE_POSITION:-$(bar_option position status)}"
 mode="$(bar_option cross_session inline)"
 
 # Separator hierarchy, all visible characters — spaces are not separators:
@@ -129,6 +130,24 @@ is_local='#{==:#{session_name},#{client_session}}'
 session_intro="#[fg=${accent} bold]${session_marker}#[default]#[fg=${accent}]#[range=user|#{session_id}]#{session_name}#[norange]#[default]"
 inline_foreign="#{?${session_has_agents},${session_intro}${windows},}"
 compact_foreign="#{?${session_has_agents},${session_intro}#{W:#{P:${compact_glyph}}},}"
+
+# Vertical layout (@agent_bar_position left/right, tmux side-status): same
+# badge vocabulary, rows joined by #[nl] — window label row, indented pane
+# rows, an accent header row per foreign session. No horizontal separators
+# or segments; the side bar has its own affordances.
+if [ "$position" != "status" ]; then
+  v_badge="#{?#{@agent_state},  #[range=user|#{pane_id}]${state_mark}${name_suffix}#[default]#[norange]#[nl],}"
+  v_window="#{?${window_has_agents},${wstyle}#[range=user|#{window_id}]#{window_name}${label_suffix}#[norange]#[default]#[nl]#{P:${v_badge}},}"
+  v_windows="#{W:${v_window}}"
+  v_header="#[fg=${accent} bold]${session_marker}#[default]#[fg=${accent}]#[range=user|#{session_id}]#{session_name}#[norange]#[default]#[nl]"
+  v_foreign="#{?${session_has_agents},${v_header}${v_windows},}"
+  if [ "$mode" = "off" ]; then
+    printf '#{S:#{?%s,%s,}}' "$is_local" "$v_windows"
+  else
+    printf '#{S:#{?%s,%s,%s}}' "$is_local" "$v_windows" "$v_foreign"
+  fi
+  exit 0
+fi
 
 if [ "$part" = "foreign" ]; then
   printf '#{S:#{?%s,,%s}}' "$is_local" "$compact_foreign"

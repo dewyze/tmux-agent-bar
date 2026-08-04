@@ -6,28 +6,60 @@ set -u
 CURRENT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 . "$CURRENT_DIR/lib/options.sh"
 
-# The bar claims status line @agent_bar_line (default 1) — plus the next
-# line when cross_session=line mode puts foreign agents on their own row.
-# Raise the status line count to fit, but leave users already running more
-# lines alone.
+# ---- tmux option names, centralized: the side-status names are provisional
+# on the tmux fork (upstream may rename them — SIDE_BAR.md); a rename is a
+# one-line change here.
+SIDE_STATUS_OPT="side-status"
+SIDE_FORMAT_OPT="side-status-format"
+SIDE_WIDTH_OPT="side-status-width"
+
 line="$(bar_option line 1)"
 mode="$(bar_option cross_session inline)"
-if [ "$mode" = "line" ]; then
-  needed=$((line + 2))
-else
-  needed=$((line + 1))
-fi
-status="$(tmux show-options -gv status 2>/dev/null || true)"
-case "$status" in
-  [0-9]) [ "$status" -ge "$needed" ] || tmux set-option -g status "$needed" ;;
-  *) tmux set-option -g status "$needed" ;;
-esac
+position="$(bar_option position status)"
 
-tmux set-option -g "status-format[$line]" "$(bash "$CURRENT_DIR/lib/bar-format.sh")"
-if [ "$mode" = "line" ]; then
-  tmux set-option -g "status-format[$((line + 1))]" "$(bash "$CURRENT_DIR/lib/bar-format.sh" foreign)"
-else
+# Capability probe: setting the side-status option IS the probe — on stock
+# tmux it fails and we fall back to the status-line bar. AGENT_BAR_FORCE
+# tells bar-format.sh which layout to emit regardless of the option, so a
+# failed probe doesn't leave a vertical format on a horizontal line.
+if [ "$position" != "status" ]; then
+  if ! tmux set-option -g "$SIDE_STATUS_OPT" "$position" 2>/dev/null; then
+    position="status"
+  fi
+fi
+export AGENT_BAR_FORCE_POSITION="$position"
+
+if [ "$position" != "status" ]; then
+  # Side mode: claim only side-status options; never touch the status line
+  # count, and undo any status-mode format claims from a previous run.
+  tmux set-option -g "$SIDE_WIDTH_OPT" "$(bar_option width 24)" 2>/dev/null || true
+  tmux set-option -g "${SIDE_FORMAT_OPT}[0]" "$(bash "$CURRENT_DIR/lib/bar-format.sh")"
+  tmux set-option -gu "status-format[$line]" 2>/dev/null || true
   tmux set-option -gu "status-format[$((line + 1))]" 2>/dev/null || true
+else
+  # Status mode: the bar claims line @agent_bar_line (plus the next line in
+  # cross_session=line mode). Raise the status count to fit, but leave
+  # users already running more lines alone; undo any side-mode claims
+  # (harmless no-ops on stock tmux). We never LOWER the status count — the
+  # pre-plugin value is unknowable.
+  if [ "$mode" = "line" ]; then
+    needed=$((line + 2))
+  else
+    needed=$((line + 1))
+  fi
+  status="$(tmux show-options -gv status 2>/dev/null || true)"
+  case "$status" in
+    [0-9]) [ "$status" -ge "$needed" ] || tmux set-option -g status "$needed" ;;
+    *) tmux set-option -g status "$needed" ;;
+  esac
+
+  tmux set-option -g "status-format[$line]" "$(bash "$CURRENT_DIR/lib/bar-format.sh")"
+  if [ "$mode" = "line" ]; then
+    tmux set-option -g "status-format[$((line + 1))]" "$(bash "$CURRENT_DIR/lib/bar-format.sh" foreign)"
+  else
+    tmux set-option -gu "status-format[$((line + 1))]" 2>/dev/null || true
+  fi
+  tmux set-option -gu "$SIDE_STATUS_OPT" 2>/dev/null || true
+  tmux set-option -gu "${SIDE_FORMAT_OPT}[0]" 2>/dev/null || true
 fi
 
 # Mouse bindings. Guards dispatch badge clicks (the bar's line, a range
@@ -37,9 +69,13 @@ fi
 # tmux's native {} quoting beats bash escaping for the nested menu.
 # @agent_bar_mouse off leaves the mouse keys entirely untouched.
 if [ "$(bar_option mouse on)" != "off" ]; then
-  # Badge clicks land on the bar's line — or either of its two lines in
-  # cross_session=line mode.
-  if [ "$mode" = "line" ]; then
+  # Badge clicks land on the bar's line (or two lines in cross_session=line
+  # mode). In side mode there is no status line to key on — the id pattern
+  # alone is the guard, which is safe: user| ranges exist only on our
+  # surfaces.
+  if [ "$position" != "status" ]; then
+    on_bar="1"
+  elif [ "$mode" = "line" ]; then
     on_bar="#{||:#{==:#{mouse_status_line},$line},#{==:#{mouse_status_line},$((line + 1))}}"
   else
     on_bar="#{==:#{mouse_status_line},$line}"

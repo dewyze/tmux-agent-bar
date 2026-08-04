@@ -92,6 +92,8 @@ Set options before the plugin loads (re-run `agent-bar.tmux` or
 |---|---|---|
 | `@agent_bar_theme` | `ascii` | `nerdfont` uses powerline dividers |
 | `@agent_bar_line` | `1` | which status line the bar claims |
+| `@agent_bar_position` | `status` | `left`/`right`: vertical side bar (needs the side-status tmux fork; probes and falls back to `status` on stock tmux) |
+| `@agent_bar_width` | `24` | side-bar column width (side mode only) |
 | `@agent_bar_mouse` | `on` | `off` leaves mouse keys entirely untouched |
 | `@agent_bar_pane_separator` | ` │ ` | between agents in a group |
 | `@agent_bar_group_separator` | ` ║ ` | opens each window group |
