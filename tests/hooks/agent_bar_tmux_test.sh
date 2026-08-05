@@ -88,7 +88,8 @@ assert_contains "$log" "set-option -g side-status left" "side-status set"
 assert_contains "$log" "set-option -g side-status-width 25" "width adds edge line column"
 assert_contains "$log" "set-option -g side-status-style bg=colour236,fg=colour254" \
   "side style mirrors status-style"
-assert_contains "$log" "set-option -g side-status-format[0] #{S:" "side format installed"
+assert_contains "$log" "set-option -g side-status-format #{S:" "side format installed"
+assert_not_contains "$log" "side-status-format[0]" "no array indexing on the string option"
 assert_contains "$log" "set-option -gu status-format[1]" "side mode undoes status format"
 assert_not_contains "$log" "set-option -g status 2" "side mode leaves status count alone"
 

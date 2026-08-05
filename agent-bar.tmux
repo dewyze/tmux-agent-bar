@@ -41,7 +41,7 @@ if [ "$position" != "status" ]; then
   if [ -n "$side_style" ]; then
     tmux set-option -g "$SIDE_STYLE_OPT" "$side_style" 2>/dev/null || true
   fi
-  tmux set-option -g "${SIDE_FORMAT_OPT}[0]" "$(bash "$CURRENT_DIR/lib/bar-format.sh")"
+  tmux set-option -g "$SIDE_FORMAT_OPT" "$(bash "$CURRENT_DIR/lib/bar-format.sh")"
   tmux set-option -gu "status-format[$line]" 2>/dev/null || true
   tmux set-option -gu "status-format[$((line + 1))]" 2>/dev/null || true
 else
@@ -68,7 +68,7 @@ else
     tmux set-option -gu "status-format[$((line + 1))]" 2>/dev/null || true
   fi
   tmux set-option -gu "$SIDE_STATUS_OPT" 2>/dev/null || true
-  tmux set-option -gu "${SIDE_FORMAT_OPT}[0]" 2>/dev/null || true
+  tmux set-option -gu "$SIDE_FORMAT_OPT" 2>/dev/null || true
   tmux set-option -gu "$SIDE_STYLE_OPT" 2>/dev/null || true
 fi
 
