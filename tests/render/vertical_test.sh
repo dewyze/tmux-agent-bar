@@ -67,6 +67,25 @@ case "$out" in
 esac
 assert_contains "$out" "#[nl]    #[range=user|$foreign_pane]" "foreign pane 4-space indent"
 
+# The tree is always present: windows without agents still get label rows
+# (the bar is a navigation surface with zero agents), but only agent panes
+# get badge rows
+tmux_t new-window -t work -n extra
+extra_pane="$(tmux_t list-panes -t work:extra -F '#{pane_id}')"
+tree_fmt="$(bash "$ROOT_DIR/lib/bar-format.sh")"
+tree_out="$(tmux_t display-message -p -c "$client" "$tree_fmt")"
+tree_shown="$(printf '%s' "$tree_out" | sed 's/#\[[^]]*\]//g')"
+assert_contains "$tree_shown" "extra" "agent-less window still gets a row"
+assert_not_contains "$tree_out" "#[range=user|$extra_pane]" "agent-less pane gets no badge row"
+
+# Zero agents anywhere: the full tree still renders
+tmux_t set-option -pu -t "$foreign_pane" @agent_state
+empty_out="$(tmux_t display-message -p -c "$client" "$(bash "$ROOT_DIR/lib/bar-format.sh")" | sed 's/#\[[^]]*\]//g')"
+assert_contains "$empty_out" "blog" "agent-less session header still renders"
+assert_contains "$empty_out" "web" "agent-less foreign window still renders"
+tmux_t set-option -p -t "$foreign_pane" @agent_state needs-input
+tmux_t kill-window -t work:extra
+
 # cross_session off still filters foreign in vertical
 tmux_t set-option -g @agent_bar_cross_session off
 off_fmt="$(bash "$ROOT_DIR/lib/bar-format.sh")"
