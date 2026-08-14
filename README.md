@@ -124,7 +124,8 @@ header. Every row is clickable. `@agent_bar_width` sets the column width.
 
 It requires tmux built with the `side-status` feature —
 [tmux/tmux#5468](https://github.com/tmux/tmux/pull/5468), which the
-maintainer has slated for tmux 3.9. Until it merges, build the PR branch:
+maintainer said would be under consideration for tmux 3.9. Until (and if)
+it merges, build the PR branch:
 
 ```sh
 git clone https://github.com/tmux/tmux.git && cd tmux
