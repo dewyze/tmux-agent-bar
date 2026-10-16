@@ -6,9 +6,8 @@ set -u
 CURRENT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 . "$CURRENT_DIR/lib/options.sh"
 
-# ---- tmux option names, centralized: the side-status names are provisional
-# on the tmux fork (upstream may rename them — SIDE_BAR.md); a rename is a
-# one-line change here.
+# ---- tmux option names, centralized: side-status is upstream tmux (master,
+# 3.9 once released); a rename is a one-line change here.
 SIDE_STATUS_OPT="side-status"
 SIDE_FORMAT_OPT="side-status-format"
 SIDE_WIDTH_OPT="side-status-width"

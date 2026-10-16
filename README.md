@@ -8,10 +8,10 @@ on you, and jump straight to them.
 
 *Vertical mode: the bar on the left is the session/window tree with one
 badge per agent — `?` is waiting on you, `+` just finished, `·` is idle.
-The regular status line at the bottom is untouched. Vertical needs a
-patched tmux ([tmux/tmux#5468](https://github.com/tmux/tmux/pull/5468),
-see [Vertical mode](#vertical-mode)); the horizontal mode below works on
-stock tmux.*
+The regular status line at the bottom is untouched. Vertical needs tmux
+3.9, or a build of tmux master until 3.9 is released (see
+[Vertical mode](#vertical-mode)); the horizontal mode below works on stock
+tmux.*
 
 No daemon, no state files, no polling: agent lifecycle hooks write tmux
 pane user options, and a second status line renders them. The tmux server
@@ -48,8 +48,8 @@ name, the harness itself (`claude`, ...).
 ## Requirements
 
 - tmux ≥ 3.2 (pane user options, format pane loops, clickable status
-  ranges); developed and tested on 3.7b. Vertical mode needs a patched
-  build — see [Vertical mode](#vertical-mode).
+  ranges); developed and tested on 3.7b. Vertical mode needs tmux 3.9 or
+  a build of tmux master — see [Vertical mode](#vertical-mode).
 - bash and python3, for the hook scripts.
 - Claude Code is the only harness wired up today — see
   [Other agents](#other-agents) for adding more.
@@ -122,16 +122,17 @@ zero agents — nothing reflows when the first one appears), with agent
 badges indented under their window and foreign sessions under an accent
 header. Every row is clickable. `@agent_bar_width` sets the column width.
 
-It requires tmux built with the `side-status` feature —
-[tmux/tmux#5468](https://github.com/tmux/tmux/pull/5468), which the
-maintainer said would be under consideration for tmux 3.9. Until (and if)
-it merges, build the PR branch:
+It requires tmux with the `side-status` feature
+([tmux/tmux#5468](https://github.com/tmux/tmux/pull/5468)). It is on tmux
+master and ships in tmux 3.9; until 3.9 is released, build master:
 
 ```sh
 git clone https://github.com/tmux/tmux.git && cd tmux
-gh pr checkout 5468    # or: git fetch origin pull/5468/head && git checkout FETCH_HEAD
 sh autogen.sh && ./configure && make
 ```
+
+On macOS, `./configure` requires jemalloc: `brew install jemalloc`, or
+pass `--disable-jemalloc`.
 
 The option is safe in dotfiles shared across machines: the plugin probes
 for `side-status` at load and falls back to the horizontal bar on stock
@@ -306,8 +307,8 @@ Ranked by expected daily leverage:
 7. **Colors/icons pass** — current palette is placeholder; nerd-font themes.
 8. **Upstream: `PermissionResolved` hook event in Claude Code** — denials
    emit no event today; this would delete `verify-needs-input.sh`.
-9. **Vertical status line upstream in tmux** —
-   [tmux/tmux#5468](https://github.com/tmux/tmux/pull/5468) is open and
-   slated for 3.9; when it merges, vertical mode works on stock tmux.
+9. **Vertical status line in a tmux release** —
+   [tmux/tmux#5468](https://github.com/tmux/tmux/pull/5468) is on tmux
+   master; once 3.9 is released, vertical mode works on stock tmux.
 
 Dropped: auto-hide when empty (idle badges mean the bar is never empty).
