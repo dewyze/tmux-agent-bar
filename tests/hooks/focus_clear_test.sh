@@ -24,7 +24,15 @@ tmux_t split-window -d -t work:api
 pane_a="$(tmux_t list-panes -t work:api -F '#{pane_id}' | sed -n '1p')"
 pane_b="$(tmux_t list-panes -t work:api -F '#{pane_id}' | sed -n '2p')"
 
+# Earlier versions hooked after-select-pane/after-select-window; loading
+# this version retires those entries rather than running both.
+tmux_t set-hook -g 'after-select-pane[181]' 'display-message stale'
+tmux_t set-hook -g 'after-select-window[182]' 'display-message stale'
+
 bash "$ROOT_DIR/agent-bar.tmux"
+
+assert_not_contains "$(tmux_t show-hooks -g after-select-pane)" "[181]" "stale pane hook retired"
+assert_not_contains "$(tmux_t show-hooks -g after-select-window)" "[182]" "stale window hook retired"
 
 state() { tmux_t show-options -pv -t "$1" @agent_state 2>/dev/null; }
 
@@ -60,6 +68,33 @@ tmux_t set-option -p -t "$done_pane" @agent_state done
 tmux_t select-window -t work:api
 tmux_t select-window -t work:db
 assert_eq "idle" "$(state "$done_pane")" "done clears on select-window"
+
+# last-pane (prefix ;) runs no after-select-pane hook, so the plugin
+# listens for the active pane changing instead
+tmux_t select-window -t work:api
+tmux_t select-pane -t "$pane_b"
+tmux_t select-pane -t "$pane_a"
+tmux_t set-option -p -t "$pane_b" @agent_state done
+tmux_t last-pane -t work:api
+assert_eq "idle" "$(state "$pane_b")" "done clears on last-pane"
+
+# Focus falling to an agent pane when the active pane closes is a visit too
+tmux_t split-window -t "$pane_b"
+doomed="$(tmux_t display-message -p -t work:api '#{pane_id}')"
+tmux_t set-option -p -t "$pane_b" @agent_state done
+tmux_t kill-pane -t "$doomed"
+assert_eq "$pane_b" "$(tmux_t display-message -p -t work:api '#{pane_id}')" "focus fell to the agent pane"
+assert_eq "idle" "$(state "$pane_b")" "done clears when focus falls to it"
+
+# ...but only in view: an active-pane change in a background window is
+# not a visit
+tmux_t select-pane -t "$pane_a"
+tmux_t select-window -t work:db
+tmux_t set-option -p -t "$pane_b" @agent_state done
+tmux_t select-pane -t "$pane_b"
+assert_eq "done" "$(state "$pane_b")" "background pane change keeps done"
+tmux_t select-window -t work:api
+assert_eq "idle" "$(state "$pane_b")" "done clears once its window is in view"
 
 # A pane with no agent state is untouched (no spurious idle writes)
 tmux_t select-pane -t "$pane_a"
