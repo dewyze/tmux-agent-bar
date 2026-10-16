@@ -25,6 +25,8 @@ IGNORED_NOTIFICATIONS = {
     "elicitation_complete",
     "elicitation_response",
     "agent_completed",
+    # Claude continuing a task on its own after a usage-limit pause.
+    "quota_auto_resume_fired",
 }
 
 

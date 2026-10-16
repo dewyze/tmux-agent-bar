@@ -39,6 +39,11 @@ assert_eq "" "$(parse '{"hook_event_name":"Notification","notification_type":"au
 assert_eq "" "$(parse '{"hook_event_name":"Notification","notification_type":"elicitation_complete"}')" "elicitation_complete"
 assert_eq "" "$(parse '{"hook_event_name":"Notification","notification_type":"elicitation_response"}')" "elicitation_response"
 
+# After a usage-limit pause, Claude continuing on its own is not a request
+# for attention. Waiting for Enter after a long sleep still is.
+assert_eq "" "$(parse '{"hook_event_name":"Notification","notification_type":"quota_auto_resume_fired"}')" "quota_auto_resume_fired"
+assert_eq "needs-input" "$(state_of '{"hook_event_name":"Notification","notification_type":"quota_auto_resume_stale"}')" "quota_auto_resume_stale"
+
 # Turn-died-on-API-error is the one clean error signal
 assert_eq "error" "$(state_of '{"hook_event_name":"StopFailure"}')" "StopFailure"
 
