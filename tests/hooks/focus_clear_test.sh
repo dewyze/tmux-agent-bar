@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Navigating to an agent pane acknowledges it: needs-input and done clear to
-# idle; running and error persist. Real server, hooks installed by the plugin.
+# Bringing an agent pane into view acknowledges it: done clears to idle;
+# needs-input, running and error persist. Real server, hooks installed by the
+# plugin, a control-mode client attached so "in view" means on a client.
 . "$(dirname "$0")/../testlib.sh"
 
 command -v tmux >/dev/null 2>&1 || fail "tmux not installed"
@@ -8,7 +9,12 @@ command -v tmux >/dev/null 2>&1 || fail "tmux not installed"
 SOCKET="agent-bar-focus-$$"
 REAL_TMUX="$(command -v tmux)"
 tmux_t() { "$REAL_TMUX" -L "$SOCKET" -f /dev/null "$@"; }
-trap 'tmux_t kill-server 2>/dev/null; rm -rf "$TEST_TMP"' EXIT
+cleanup() {
+  exec 9>&- 2>/dev/null
+  tmux_t kill-server 2>/dev/null
+  rm -rf "$TEST_TMP"
+}
+trap cleanup EXIT
 
 mkdir -p "$TEST_TMP/bin"
 cat > "$TEST_TMP/bin/tmux" <<SHIM
@@ -23,6 +29,14 @@ tmux_t new-session -d -s work -n api -x 80 -y 24
 tmux_t split-window -d -t work:api
 pane_a="$(tmux_t list-panes -t work:api -F '#{pane_id}' | sed -n '1p')"
 pane_b="$(tmux_t list-panes -t work:api -F '#{pane_id}' | sed -n '2p')"
+
+# Keep a control-mode client attached to `work` on fd 9
+exec 9> >("$REAL_TMUX" -L "$SOCKET" -f /dev/null -C attach -t work >/dev/null 2>&1)
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  [ -n "$(tmux_t list-clients -F '#{client_session}' 2>/dev/null)" ] && break
+  sleep 0.2
+done
+assert_eq "work" "$(tmux_t list-clients -F '#{client_session}')" "client starts on work"
 
 # Earlier versions hooked after-select-pane/after-select-window; loading
 # this version retires those entries rather than running both.
@@ -96,6 +110,17 @@ assert_eq "done" "$(state "$pane_b")" "background pane change keeps done"
 tmux_t select-window -t work:api
 assert_eq "idle" "$(state "$pane_b")" "done clears once its window is in view"
 
+# A session no client is viewing is not in view either, even its current
+# window: focus falling to a done pane there acknowledges nothing
+tmux_t new-session -d -s side -x 80 -y 24
+tmux_t split-window -d -t side
+side_doomed="$(tmux_t list-panes -t side -F '#{pane_id}' | sed -n '1p')"
+side_agent="$(tmux_t list-panes -t side -F '#{pane_id}' | sed -n '2p')"
+tmux_t set-option -p -t "$side_agent" @agent_state done
+tmux_t kill-pane -t "$side_doomed"
+assert_eq "$side_agent" "$(tmux_t display-message -p -t side '#{pane_id}')" "focus fell to the unviewed agent pane"
+assert_eq "done" "$(state "$side_agent")" "unviewed session keeps done"
+
 # A pane with no agent state is untouched (no spurious idle writes)
 tmux_t select-pane -t "$pane_a"
 assert_eq "" "$(state "$pane_a")" "stateless pane stays stateless"
@@ -109,5 +134,13 @@ assert_eq "needs-input" "$(state "$pane_b")" "select-pane away keeps badge"
 tmux_t select-window -t work:db
 assert_eq "needs-input" "$(state "$pane_b")" "select-window away keeps badge"
 tmux_t new-session -d -s other -x 80 -y 24
-tmux_t switch-client -t other 2>/dev/null || true
+tmux_t switch-client -t other
+assert_eq "other" "$(tmux_t list-clients -F '#{client_session}')" "client switched to other"
 assert_eq "needs-input" "$(state "$pane_b")" "session switch keeps badge"
+
+# switch-client to the session already in view still acknowledges: a badge
+# click on the window you're in relies on it
+other_pane="$(tmux_t display-message -p -t other '#{pane_id}')"
+tmux_t set-option -p -t "$other_pane" @agent_state done
+tmux_t switch-client -t other
+assert_eq "idle" "$(state "$other_pane")" "same-session switch-client acknowledges"

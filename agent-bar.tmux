@@ -121,13 +121,17 @@ fi
 
 # Navigating to an agent pane acknowledges done (a seen "+" has no residual
 # truth). needs-input persists — the pane still wants input until an event
-# says otherwise; running/error persist too. The hooks fire when the active
-# pane, current window, or client session actually changes, whatever caused
-# it (last-pane and a closing pane included, which run no after-select-*
-# hook), unlike pane-focus-in which needs terminal focus events. A pane
-# change in a background window is not a visit, hence window_active. Array
-# indices keep clear of user-defined hooks on the same events.
-acknowledge='if-shell -F "#{&&:#{window_active},#{==:#{@agent_state},done}}" "set-option -p @agent_state idle"'
+# says otherwise; running/error persist too. window-pane-changed and
+# session-window-changed fire when the active pane or current window actually
+# changes, whatever caused it (last-pane and a closing pane included, which
+# run no after-select-* hook), unlike pane-focus-in which needs terminal
+# focus events. client-session-changed fires on every switch-client, the
+# same session included, which is what acknowledges a badge click on the
+# window already in view. The first two also fire for windows nobody is
+# looking at, so the acknowledgement requires a client viewing the window
+# (window_active_clients). Array indices keep clear of user-defined hooks on
+# the same events.
+acknowledge='if-shell -F "#{&&:#{window_active_clients},#{==:#{@agent_state},done}}" "set-option -p @agent_state idle"'
 # Denials emit no hook event, so needs-input badges are re-verified against
 # the pane's actual screen on navigation — but only when one exists (the
 # format guard keeps steady-state navigation free of process spawns).
