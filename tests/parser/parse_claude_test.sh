@@ -43,6 +43,9 @@ assert_eq "" "$(parse '{"hook_event_name":"Notification","notification_type":"el
 # for attention. Waiting for Enter after a long sleep still is.
 assert_eq "" "$(parse '{"hook_event_name":"Notification","notification_type":"quota_auto_resume_fired"}')" "quota_auto_resume_fired"
 assert_eq "needs-input" "$(state_of '{"hook_event_name":"Notification","notification_type":"quota_auto_resume_stale"}')" "quota_auto_resume_stale"
+# Giving up on the wait is the only signal when a queued continuation is
+# dropped after its prompt already wrote running: it must stay needs-input.
+assert_eq "needs-input" "$(state_of '{"hook_event_name":"Notification","notification_type":"quota_auto_resume_disabled"}')" "quota_auto_resume_disabled"
 
 # Turn-died-on-API-error is the one clean error signal
 assert_eq "error" "$(state_of '{"hook_event_name":"StopFailure"}')" "StopFailure"
