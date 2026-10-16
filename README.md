@@ -122,6 +122,14 @@ zero agents — nothing reflows when the first one appears), with agent
 badges indented under their window and foreign sessions under an accent
 header. Every row is clickable. `@agent_bar_width` sets the column width.
 
+The column's own colours come from tmux's `side-status-style`, which the
+plugin leaves alone: by default, upstream's green text on the terminal
+background. To match your status line instead, set it yourself:
+
+```tmux
+set -g side-status-style "bg=colour236,fg=colour254"
+```
+
 It requires tmux with the `side-status` feature
 ([tmux/tmux#5468](https://github.com/tmux/tmux/pull/5468)). It is on tmux
 master and ships in tmux 3.9; until 3.9 is released, build master:
