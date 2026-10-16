@@ -50,6 +50,11 @@ def event_name(data):
 def parse(data):
     event = event_name(data)
     if event == "SessionStart":
+        # Compaction restarts the session without changing what the agent
+        # is doing; idle here would demote an unseen done or dim a running
+        # agent.
+        if data.get("source") == "compact":
+            return "", ""
         return "idle", ""
     if event == "SessionEnd":
         # Not a state: the hook unsets the pane's options so the agent

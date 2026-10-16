@@ -18,6 +18,13 @@ assert_eq "exit" "$(state_of '{"hook_event_name":"SessionEnd"}')" "SessionEnd"
 assert_eq "running" "$(state_of '{"hook_event_name":"UserPromptSubmit"}')" "UserPromptSubmit"
 assert_eq "done" "$(state_of '{"hook_event_name":"Stop"}')" "Stop"
 
+# Compaction fires SessionStart too, but it changes nothing about what the
+# agent is doing: idle compaction must not demote an unseen done, and
+# mid-turn compaction must not dim a running agent. It writes nothing.
+assert_eq "" "$(parse '{"hook_event_name":"SessionStart","source":"compact"}')" "compaction is a no-op"
+assert_eq "idle" "$(state_of '{"hook_event_name":"SessionStart","source":"startup"}')" "startup is idle"
+assert_eq "idle" "$(state_of '{"hook_event_name":"SessionStart","source":"clear"}')" "clear is idle"
+
 # The idle_prompt nudge fires every ~60s while Claude waits for input —
 # including while a permission prompt is pending. It must write NOTHING:
 # mapping it to idle erases a live needs-input badge.
