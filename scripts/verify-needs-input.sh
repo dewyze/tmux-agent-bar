@@ -15,8 +15,12 @@ while IFS= read -r pane; do
   transcript="$(tmux show-options -pv -t "$pane" @agent_transcript 2>/dev/null || true)"
   updated="$(tmux show-options -pv -t "$pane" @agent_updated 2>/dev/null || true)"
   [ -n "$transcript" ] && [ -n "$updated" ] || continue
+  # Compare-and-set: clear only the badge that was checked. A hook write
+  # that landed meanwhile (a fresh prompt, the agent resuming) wins.
   if python3 "$ROOT_DIR/lib/transcript-progressed.py" "$transcript" "$updated"; then
-    tmux set-option -p -t "$pane" @agent_state idle 2>/dev/null
+    tmux if-shell -F -t "$pane" \
+      "#{&&:#{==:#{@agent_state},needs-input},#{==:#{@agent_updated},$updated}}" \
+      "set-option -p -t $pane @agent_state idle" 2>/dev/null
   fi
 done
 

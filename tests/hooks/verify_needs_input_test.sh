@@ -111,3 +111,30 @@ assert_eq "idle" "$(state "$pane")" "partial trailing line still detects progres
 tmux_t set-option -p -t "$other" @agent_state running
 verify
 assert_eq "running" "$(state "$other")" "running pane untouched"
+
+# The verifier decides on what it read, then writes. A hook write landing
+# in between (a fresh prompt, or the agent resuming work) must survive, so
+# the clear is a compare-and-set. This python3 runs the real check, then
+# lands that concurrent write just before the verifier's own.
+REAL_PYTHON="$(command -v python3)"
+mkdir -p "$TEST_TMP/race"
+cat > "$TEST_TMP/race/python3" <<SHIM
+#!/usr/bin/env bash
+"$REAL_PYTHON" "\$@"
+status=\$?
+. "$TEST_TMP/race/concurrent_write"
+exit \$status
+SHIM
+chmod +x "$TEST_TMP/race/python3"
+verify_racing() { # $1: the hook write that lands mid-verification
+  printf '%s\n' "$1" > "$TEST_TMP/race/concurrent_write"
+  PATH="$TEST_TMP/race:$PATH" verify
+}
+
+set_badge "$pane" "$TEST_TMP/answered.jsonl"
+verify_racing "tmux set-option -p -t $pane @agent_updated $((NOW + 60))"
+assert_eq "needs-input" "$(state "$pane")" "fresh prompt during verification keeps badge"
+
+set_badge "$pane" "$TEST_TMP/answered.jsonl"
+verify_racing "tmux set-option -p -t $pane @agent_state running"
+assert_eq "running" "$(state "$pane")" "agent resuming during verification stays running"
