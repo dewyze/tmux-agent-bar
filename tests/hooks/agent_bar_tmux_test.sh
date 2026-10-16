@@ -77,28 +77,21 @@ assert_contains "$(cat "$STUB_LOG")" "set-option -g status-format[1]" "format st
 
 # Side mode (feature supported): claims side-status options, does NOT touch
 # the status line count, undoes status-mode format claims; the mouse guard
-# drops the line check (side-bar clicks carry no status line). The side bar
-# does not inherit status-style upstream, so the plugin mirrors it, and the
-# claimed width adds one column for the bar's edge line.
+# drops the line check (side-bar clicks carry no status line). The claimed
+# width adds one column for the bar's edge line. side-status-style belongs
+# to tmux and the user: the plugin never copies status-style into it.
 printf 'left' > "$POSITION_FILE"
 printf 'bg=colour236,fg=colour254' > "$STYLE_FILE"
 run_plugin "on"
 log="$(cat "$STUB_LOG")"
 assert_contains "$log" "set-option -g side-status left" "side-status set"
 assert_contains "$log" "set-option -g side-status-width 25" "width adds edge line column"
-assert_contains "$log" "set-option -g side-status-style bg=colour236,fg=colour254" \
-  "side style mirrors status-style"
+assert_not_contains "$log" "side-status-style" "side style left to tmux and the user"
 assert_contains "$log" "set-option -g side-status-format #{S:" "side format installed"
 assert_not_contains "$log" "side-status-format[0]" "no array indexing on the string option"
 assert_contains "$log" "set-option -gu status-format[1]" "side mode undoes status format"
 assert_not_contains "$log" "set-option -g status 2" "side mode leaves status count alone"
 
-# No status-style to mirror: leave side-status-style to the tmux default
-rm -f "$STYLE_FILE"
-run_plugin "on"
-assert_not_contains "$(cat "$STUB_LOG")" "set-option -g side-status-style" \
-  "no style claim without a status-style"
-printf 'bg=colour236,fg=colour254' > "$STYLE_FILE"
 b="$(cat "$ROOT_DIR/.bindings.generated.conf")"
 assert_not_contains "$b" "mouse_status_line" "side-mode guard is pattern-only"
 assert_contains "$b" "jump.sh" "side-mode bindings present"
@@ -109,5 +102,5 @@ run_plugin "on"
 log="$(cat "$STUB_LOG")"
 assert_contains "$log" "set-option -g status 2" "fallback raises status"
 assert_contains "$log" "set-option -g status-format[1] #{S:" "fallback installs status format"
-assert_contains "$log" "set-option -gu side-status-style" "fallback undoes side style claim"
+assert_not_contains "$log" "side-status-style" "fallback leaves side style alone"
 rm -f "$SIDE_FAIL" "$POSITION_FILE" "$STYLE_FILE"

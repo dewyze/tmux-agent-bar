@@ -12,7 +12,6 @@ CURRENT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 SIDE_STATUS_OPT="side-status"
 SIDE_FORMAT_OPT="side-status-format"
 SIDE_WIDTH_OPT="side-status-width"
-SIDE_STYLE_OPT="side-status-style"
 
 line="$(bar_option line 1)"
 mode="$(bar_option cross_session inline)"
@@ -33,14 +32,10 @@ if [ "$position" != "status" ]; then
   # Side mode: claim only side-status options; never touch the status line
   # count, and undo any status-mode format claims from a previous run.
   # side-status-width includes the bar's edge line column, so claim one more
-  # than the content width the format is built for. The bar has its own
-  # side-status-style rather than inheriting status-style; mirror the
-  # status line so the bar keeps matching it.
+  # than the content width the format is built for. side-status-style is
+  # left to tmux and the user: the bar looks like upstream's unless they
+  # style it.
   tmux set-option -g "$SIDE_WIDTH_OPT" "$(($(bar_option width 24) + 1))" 2>/dev/null || true
-  side_style="$(tmux show-options -gv status-style 2>/dev/null || true)"
-  if [ -n "$side_style" ]; then
-    tmux set-option -g "$SIDE_STYLE_OPT" "$side_style" 2>/dev/null || true
-  fi
   tmux set-option -g "$SIDE_FORMAT_OPT" "$(bash "$CURRENT_DIR/lib/bar-format.sh")"
   tmux set-option -gu "status-format[$line]" 2>/dev/null || true
   tmux set-option -gu "status-format[$((line + 1))]" 2>/dev/null || true
@@ -69,7 +64,6 @@ else
   fi
   tmux set-option -gu "$SIDE_STATUS_OPT" 2>/dev/null || true
   tmux set-option -gu "$SIDE_FORMAT_OPT" 2>/dev/null || true
-  tmux set-option -gu "$SIDE_STYLE_OPT" 2>/dev/null || true
 fi
 
 # Mouse bindings. Guards dispatch badge clicks (the bar's line, a range
