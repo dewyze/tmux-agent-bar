@@ -72,3 +72,20 @@ assert_row 5 "  docs                  │" "foreign window row"
 tmux_i set-option -p -t "$pane" @agent_state needs-input
 wait_for "? claude"
 assert_row 2 "  ? claude              │" "redraw on state change"
+
+# Overflow: more rows than the bar's 11 keeps the current window visible,
+# with markers on the first and last rows for the rows hidden above and below
+for i in $(seq 2 20); do tmux_i new-window -d -t work -n "w$i"; done
+tmux_i select-window -t work:w12
+wait_for "↑"
+grep -q '^w12 ' <<<"$captured" || fail "current window row not visible: $captured"
+assert_row 1 "↑" "more-above marker"
+assert_row 11 "↓" "more-below marker"
+
+# The focus is the viewing session's current window, never a foreign
+# session's: after switching to a session listed below work's rows, work's
+# current window (w12) gives way to it
+tmux_i new-session -d -s zed -n zz
+tmux_i switch-client -c "$(tmux_i list-clients -F '#{client_name}')" -t zed
+wait_for " ▌ work"
+grep -q '^zz ' <<<"$captured" || fail "viewing session's window not visible: $captured"

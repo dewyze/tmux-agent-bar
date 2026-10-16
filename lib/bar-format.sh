@@ -143,16 +143,23 @@ if [ "$position" != "status" ]; then
   # header) gets a row, so the bar is a navigation surface even with zero
   # agents and nothing reflows when the first one appears. Only the pane
   # badge rows are gated on agent state.
+  # Overflow: the whole tree is a tmux list (list=on) with "more above" and
+  # "more below" marker rows, upstream's ACS arrows. The current window's
+  # label row is the list focus, so when the tree is taller than the bar
+  # tmux scrolls to keep it visible. Local windows only: a foreign
+  # session's active window must not take the focus.
+  v_list="#[list=on]#[list=left-marker]#[acs]-#[noacs]#[nl]#[list=right-marker]#[acs].#[noacs]#[nl]"
+  v_focus='#{?window_active,#[list=focus],}'
   v_badge() { printf '#{?#{@agent_state},%s#[range=user|#{pane_id}]%s%s#[default]#[norange]#[nl],}' "$1" "${state_mark}" "${name_suffix}"; }
-  v_window() { printf '%s%s#[range=user|#{window_id}]#{window_name}%s#[norange]#[default]#[nl]#{P:%s}' "$1" "${wstyle}" "${label_suffix}" "$(v_badge "$2")"; }
-  v_windows_local="#{W:$(v_window '' '  ')}"
-  v_windows_foreign="#{W:$(v_window '  ' '    ')}"
+  v_window() { printf '%s%s%s#[range=user|#{window_id}]#{window_name}%s#[norange]#[default]#[list=on]#[nl]#{P:%s}' "$1" "$3" "${wstyle}" "${label_suffix}" "$(v_badge "$2")"; }
+  v_windows_local="#{W:$(v_window '' '  ' "$v_focus")}"
+  v_windows_foreign="#{W:$(v_window '  ' '    ' '')}"
   v_header="#[fg=${accent} bold]${session_marker}#[default]#[fg=${accent}]#[range=user|#{session_id}]#{session_name}#[norange]#[default]#[nl]"
   v_foreign="${v_header}${v_windows_foreign}"
   if [ "$mode" = "off" ]; then
-    printf '#{S:#{?%s,%s,}}' "$is_local" "$v_windows_local"
+    printf '%s#{S:#{?%s,%s,}}' "$v_list" "$is_local" "$v_windows_local"
   else
-    printf '#{S:#{?%s,%s,%s}}' "$is_local" "$v_windows_local" "$v_foreign"
+    printf '%s#{S:#{?%s,%s,%s}}' "$v_list" "$is_local" "$v_windows_local" "$v_foreign"
   fi
   exit 0
 fi
