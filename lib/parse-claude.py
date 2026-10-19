@@ -6,7 +6,7 @@ subagent lifecycle event ("start"/"stop" or blank). No output means the
 hook should not write state.
 
 Event names and notification types verified against
-https://code.claude.com/docs/en/hooks.md (July 2026).
+https://code.claude.com/docs/en/hooks.md (October 2026).
 """
 
 import json
@@ -73,8 +73,9 @@ def parse(data):
         return "running", ""
     if event in ("PostToolUse", "PostToolUseFailure", "PermissionDenied"):
         # Work is executing again — after an approved permission (tool ran),
-        # a failed tool, or a denial. All are the truthful exit from
-        # needs-input; failures are NOT error, they happen routinely mid-run.
+        # a failed tool, or an auto-mode denial. Denying at the prompt fires
+        # no event (verify-needs-input covers that). Failures are NOT error,
+        # they happen routinely mid-run.
         # "soft" because these fire during subagent turns and must not
         # disturb their bookkeeping.
         return "running", "soft"
