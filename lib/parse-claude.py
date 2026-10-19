@@ -58,6 +58,13 @@ def parse(data):
         if data.get("source") == "compact":
             return "", ""
         return "idle", ""
+    if event == "PostCompact":
+        # A manual /compact is typed at the prompt: the agent is waiting
+        # there, whatever an Esc (which fires no event) left on the badge.
+        # Auto-compaction says nothing about what the agent is doing.
+        if data.get("trigger") == "manual":
+            return "idle", ""
+        return "", ""
     if event == "SessionEnd":
         # Not a state: the hook unsets the pane's options so the agent
         # leaves the bar entirely instead of lingering as a dim badge.

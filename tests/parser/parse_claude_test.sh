@@ -25,6 +25,13 @@ assert_eq "" "$(parse '{"hook_event_name":"SessionStart","source":"compact"}')" 
 assert_eq "idle" "$(state_of '{"hook_event_name":"SessionStart","source":"startup"}')" "startup is idle"
 assert_eq "idle" "$(state_of '{"hook_event_name":"SessionStart","source":"clear"}')" "clear is idle"
 
+# A manual /compact is typed at the prompt, so the agent is waiting there
+# whatever the badge said (Esc fires no event and can leave a stale running).
+# Auto-compaction runs mid-turn and while idle alike: it writes nothing.
+assert_eq "idle" "$(state_of '{"hook_event_name":"PostCompact","trigger":"manual"}')" "manual compact is idle"
+assert_eq "" "$(parse '{"hook_event_name":"PostCompact","trigger":"auto"}')" "auto compact is a no-op"
+assert_eq "" "$(parse '{"hook_event_name":"PostCompact"}')" "compact without a trigger is a no-op"
+
 # The idle_prompt nudge fires every ~60s while Claude waits for input —
 # including while a permission prompt is pending. It must write NOTHING:
 # mapping it to idle erases a live needs-input badge.

@@ -41,6 +41,7 @@ EVENTS = {
     "PermissionDenied": True,
     "PostToolUse": True,
     "PostToolUseFailure": True,
+    "PostCompact": True,
     "SessionEnd": True,
     "SubagentStart": True,
     "SubagentStop": True,

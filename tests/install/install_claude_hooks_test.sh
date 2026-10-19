@@ -18,7 +18,7 @@ $1
 # Fresh install creates the file and registers every lifecycle event
 install
 [ -f "$SETTINGS" ] || fail "settings.json not created"
-for event in SessionStart UserPromptSubmit Stop StopFailure Notification PermissionRequest PermissionDenied PostToolUse PostToolUseFailure SessionEnd SubagentStart SubagentStop; do
+for event in SessionStart UserPromptSubmit Stop StopFailure Notification PermissionRequest PermissionDenied PostToolUse PostToolUseFailure PostCompact SessionEnd SubagentStart SubagentStop; do
   json "assert '$event' in data['hooks'], '$event missing'"
 done
 json "
@@ -31,7 +31,7 @@ assert data['hooks']['SessionStart'][0]['hooks'][0]['async'] is False, 'SessionS
 
 # Idempotent: re-running never duplicates entries
 install
-assert_eq "12" "$(grep -c 'hooks/claude.sh' "$SETTINGS")" "one entry per event after re-run"
+assert_eq "13" "$(grep -c 'hooks/claude.sh' "$SETTINGS")" "one entry per event after re-run"
 
 # Existing user hooks and unrelated settings are preserved
 python3 - "$SETTINGS" <<'SEED'
@@ -45,7 +45,7 @@ SEED
 install
 assert_file_contains "$SETTINGS" "my-bell.sh" "user hook preserved"
 assert_file_contains "$SETTINGS" '"model": "opus"' "unrelated settings preserved"
-assert_eq "12" "$(grep -c 'hooks/claude.sh' "$SETTINGS")" "still one entry per event"
+assert_eq "13" "$(grep -c 'hooks/claude.sh' "$SETTINGS")" "still one entry per event"
 
 # Backups: one per run, rotated to the 3 newest
 install "20260730-130000"
