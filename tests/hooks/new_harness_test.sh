@@ -25,9 +25,9 @@ cp "$ROOT_DIR/lib/parse-claude.py" "$FAKE_ROOT/lib/"  # coexisting harness
 cp "$ROOT_DIR/hooks/claude.sh" "$FAKE_ROOT/hooks/"
 printf '0.0-test\n' > "$FAKE_ROOT/VERSION"
 cat > "$FAKE_ROOT/lib/parse-fakebot.py" <<'PY'
-import json, os
+import json, sys
 
-data = json.loads(os.environ.get("HOOK_PAYLOAD", "{}") or "{}")
+data = json.loads(sys.stdin.read() or "{}")
 kind = data.get("event", "")
 states = {"go": "running", "ask": "needs-input", "fin": "done", "bye": "exit"}
 state = states.get(kind, "")

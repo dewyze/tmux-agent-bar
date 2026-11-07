@@ -65,3 +65,11 @@ run_hook '{"hook_event_name":"SessionEnd"}'
 assert_eq "" "$(option @agent_state)" "state unset after SessionEnd"
 assert_eq "" "$(option @agent_app)" "app unset after SessionEnd"
 assert_eq "running" "$(tmux_t show-options -pv -t "$other" @agent_state)" "other pane survives"
+
+# A payload past the exec size limit (1MB on macOS, 128KB per variable on
+# Linux) still lands: PostCompact carries the whole compaction summary, and
+# PostToolUse the whole tool result.
+big="$(python3 -c 'import json; print(json.dumps({"hook_event_name": "PostCompact", "trigger": "manual", "compact_summary": "x" * 1100000}))')"
+tmux_t set-option -p -t "$pane" @agent_state running
+run_hook "$big"
+assert_eq "idle" "$(option @agent_state)" "oversized payload still parsed"

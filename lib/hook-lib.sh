@@ -55,7 +55,7 @@ if select.select([sys.stdin], [], [], 0.05)[0]:
 
 # The generic harness writer: everything after parsing is identical for
 # every agent. A new harness integration is exactly two files:
-#   lib/parse-<app>.py  — pure: payload in $HOOK_PAYLOAD (+ optional event
+#   lib/parse-<app>.py  — pure: payload on stdin (+ optional event
 #                         argv) -> 3-line protocol on stdout:
 #                         state, subagent event (start/stop/soft), transcript
 #   hooks/<app>.sh      — three lines: source this file, run_agent_hook <app>
@@ -72,7 +72,9 @@ run_agent_hook() {
   resolve_hook_input "$@"
 
   local result state subagent_event transcript
-  result="$(HOOK_PAYLOAD="$HOOK_PAYLOAD" python3 "$lib_dir/parse-$app.py" "$HOOK_EVENT_ARG")" || return 0
+  # On stdin, not in the environment: exec caps an environment variable
+  # (1MB on macOS, 128KB on Linux) and a big payload would be dropped.
+  result="$(python3 "$lib_dir/parse-$app.py" "$HOOK_EVENT_ARG" <<<"$HOOK_PAYLOAD")" || return 0
   state="$(printf '%s\n' "$result" | sed -n '1p')"
   subagent_event="$(printf '%s\n' "$result" | sed -n '2p')"
   transcript="$(printf '%s\n' "$result" | sed -n '3p')"

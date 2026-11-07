@@ -3,7 +3,7 @@
 . "$(dirname "$0")/../testlib.sh"
 
 parse() {
-  HOOK_PAYLOAD="$1" python3 "$ROOT_DIR/lib/parse-claude.py" "${2:-}"
+  printf '%s' "$1" | python3 "$ROOT_DIR/lib/parse-claude.py" "${2:-}"
 }
 
 state_of() { parse "$1" "${2:-}" | sed -n '1p'; }
@@ -90,4 +90,4 @@ assert_eq "" "$(transcript_of '{"hook_event_name":"Stop"}')" "no transcript -> e
 
 # Event name fallbacks: argv, then CLAUDE_HOOK_EVENT_NAME env
 assert_eq "done" "$(state_of '{}' 'Stop')" "argv fallback"
-assert_eq "done" "$(HOOK_PAYLOAD='{}' CLAUDE_HOOK_EVENT_NAME='Stop' python3 "$ROOT_DIR/lib/parse-claude.py" | sed -n '1p')" "env fallback"
+assert_eq "done" "$(printf '{}' | CLAUDE_HOOK_EVENT_NAME='Stop' python3 "$ROOT_DIR/lib/parse-claude.py" | sed -n '1p')" "env fallback"

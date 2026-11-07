@@ -1,6 +1,6 @@
 """Map a Claude Code hook payload to an agent state.
 
-Input: JSON payload in $HOOK_PAYLOAD; event name falls back to argv[1],
+Input: JSON payload on stdin; event name falls back to argv[1],
 then $CLAUDE_HOOK_EVENT_NAME. Output protocol is two lines: state, then
 subagent lifecycle event ("start"/"stop" or blank). No output means the
 hook should not write state.
@@ -32,7 +32,7 @@ IGNORED_NOTIFICATIONS = {
 
 def payload():
     try:
-        data = json.loads(os.environ.get("HOOK_PAYLOAD", ""))
+        data = json.loads(sys.stdin.read())
     except (json.JSONDecodeError, ValueError):
         return {}
     return data if isinstance(data, dict) else {}
