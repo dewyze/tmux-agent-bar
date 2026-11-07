@@ -48,16 +48,19 @@ resolve_agent_state() {
 #   lib/parse-<app>.py  — pure: payload on stdin (+ optional event
 #                         argv) -> 3-line protocol on stdout:
 #                         state, subagent event (start/stop/soft), transcript
-#   hooks/<app>.sh      — three lines: source this file, run_agent_hook <app>
+#   hooks/<app>.sh      — four lines: source this file, run_agent_hook <app>
 # Schema stamping, the subagent state machine, exit-unsets, tracing, and
 # batched writes all come from here (see SCHEMA.md for the contract).
 # Always exits 0 so a failure never disturbs the harness.
 run_agent_hook() {
   local app="$1"
   shift
-  local lib_dir root_dir
-  lib_dir="$(CDPATH= cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  root_dir="$(CDPATH= cd -- "$lib_dir/.." && pwd)"
+  # This runs on every event, so it sticks to bash builtins: each helper
+  # program it forks (dirname, sed, date, cat) costs about 3ms. Keep it
+  # bash 3.2 compatible too, for macOS's /bin/bash. The wrapper sources
+  # this file by path, so BASH_SOURCE always has a directory part.
+  local lib_dir="${BASH_SOURCE[0]%/*}"
+  local root_dir="$lib_dir/.."
 
   resolve_hook_input "$@"
 
@@ -65,9 +68,7 @@ run_agent_hook() {
   # On stdin, not in the environment: exec caps an environment variable
   # (1MB on macOS, 128KB on Linux) and a big payload would be dropped.
   result="$(python3 "$lib_dir/parse-$app.py" "$HOOK_EVENT_ARG" <<<"$HOOK_PAYLOAD")" || return 0
-  state="$(printf '%s\n' "$result" | sed -n '1p')"
-  subagent_event="$(printf '%s\n' "$result" | sed -n '2p')"
-  transcript="$(printf '%s\n' "$result" | sed -n '3p')"
+  { IFS= read -r state; IFS= read -r subagent_event; IFS= read -r transcript; } <<<"$result"
 
   # Opt-in diagnostics: `tmux set -g @agent_bar_trace /path/to/log` records
   # every event (including no-ops) with its parse result.
@@ -104,12 +105,14 @@ run_agent_hook() {
   state="${resolved% *}"
   count="${resolved##* }"
 
-  local write
+  # EPOCHSECONDS is bash 5+; bash 3.2 falls back to date.
+  local version=unknown write
+  read -r version 2>/dev/null <"$root_dir/VERSION"
   write=(set-option -p -t "$pane" @agent_app "$app"
     \; set-option -p -t "$pane" @agent_state "$state"
     \; set-option -p -t "$pane" @agent_subagents "$count"
-    \; set-option -p -t "$pane" @agent_updated "$(date +%s)"
-    \; set-option -p -t "$pane" @agent_writer_version "$(cat "$root_dir/VERSION" 2>/dev/null || printf unknown)"
+    \; set-option -p -t "$pane" @agent_updated "${EPOCHSECONDS:-$(date +%s)}"
+    \; set-option -p -t "$pane" @agent_writer_version "$version"
     \; set-option -p -t "$pane" @agent_schema 1)
   if [ -n "$transcript" ]; then
     write+=(\; set-option -p -t "$pane" @agent_transcript "$transcript")

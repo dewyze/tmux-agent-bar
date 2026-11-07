@@ -79,3 +79,18 @@ assert_eq "idle" "$(option @agent_state)" "oversized payload still parsed"
 tmux_t set-option -p -t "$pane" @agent_state running
 { sleep 0.3; printf '%s' '{"hook_event_name":"Stop"}'; } | bash "$ROOT_DIR/hooks/claude.sh"
 assert_eq "done" "$(option @agent_state)" "late payload still parsed"
+
+# macOS runs the hook under /bin/bash 3.2 when no newer bash is first on
+# PATH. A bash-4+ timestamp form once wrote an empty @agent_updated there,
+# which needs-input verification depends on.
+tmux_t set-option -pu -t "$pane" @agent_updated
+printf '%s' '{"hook_event_name":"Stop"}' | /bin/bash "$ROOT_DIR/hooks/claude.sh"
+case "$(option @agent_updated)" in
+  ''|*[!0-9]*) fail "/bin/bash wrote @agent_updated [$(option @agent_updated)]" ;;
+esac
+
+# Run from inside hooks/, $0 has no directory part; the hook still finds
+# its library.
+tmux_t set-option -p -t "$pane" @agent_state idle
+(cd "$ROOT_DIR/hooks" && printf '%s' '{"hook_event_name":"UserPromptSubmit"}' | bash claude.sh)
+assert_eq "running" "$(option @agent_state)" "hook invoked by bare name"

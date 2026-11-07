@@ -260,11 +260,12 @@ integration is two files:
 1. `lib/parse-<app>.py` — pure: payload on stdin → three lines
    on stdout: state, subagent event (`start`/`stop`/`soft`/empty),
    transcript path (or empty). Unknown events print nothing.
-2. `hooks/<app>.sh` — three lines:
+2. `hooks/<app>.sh` — four lines:
 
    ```sh
    #!/usr/bin/env bash
-   . "$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)/lib/hook-lib.sh"
+   case "$0" in */*) here="${0%/*}" ;; *) here=. ;; esac
+   . "$here/../lib/hook-lib.sh"
    run_agent_hook <app> "$@"
    ```
 

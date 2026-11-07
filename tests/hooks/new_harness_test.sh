@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The "adding a harness" recipe, executed: a new agent integration is exactly
 # (1) a pure parser lib/parse-<app>.py speaking the 3-line protocol and
-# (2) a 3-line hooks/<app>.sh delegating to run_agent_hook. This test builds
+# (2) a 4-line hooks/<app>.sh delegating to run_agent_hook. This test builds
 # a fake harness from that recipe and proves it gets full writer behavior —
 # schema stamping, state machine, exit-unsets — for free.
 . "$(dirname "$0")/../testlib.sh"
@@ -40,7 +40,8 @@ PY
 # Recipe file 2: the wrapper
 cat > "$FAKE_ROOT/hooks/fakebot.sh" <<'SH'
 #!/usr/bin/env bash
-. "$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)/lib/hook-lib.sh"
+case "$0" in */*) here="${0%/*}" ;; *) here=. ;; esac
+. "$here/../lib/hook-lib.sh"
 run_agent_hook fakebot "$@"
 SH
 chmod +x "$FAKE_ROOT/hooks/fakebot.sh"
