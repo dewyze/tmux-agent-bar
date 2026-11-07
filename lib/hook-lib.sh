@@ -43,16 +43,6 @@ resolve_agent_state() {
   printf '%s %s\n' "$state" "$count"
 }
 
-# Read stdin only if data is ready within 50ms, so a hook invoked without a
-# payload never hangs waiting on a pipe that stays open.
-read_ready_stdin() {
-  python3 -c '
-import select, sys
-if select.select([sys.stdin], [], [], 0.05)[0]:
-    sys.stdout.write(sys.stdin.read())
-'
-}
-
 # The generic harness writer: everything after parsing is identical for
 # every agent. A new harness integration is exactly two files:
 #   lib/parse-<app>.py  — pure: payload on stdin (+ optional event
@@ -141,7 +131,12 @@ resolve_hook_input() {
       ?*) HOOK_EVENT_ARG="$arg" ;;
     esac
   done
-  if [ -z "$HOOK_PAYLOAD" ]; then
-    HOOK_PAYLOAD="$(read_ready_stdin)"
+  # Wait up to a second for the payload to start, so a hook invoked without
+  # one never hangs on a pipe that stays open. Whole seconds: macOS's bash
+  # 3.2 rejects a fractional timeout. cat, not $(</dev/stdin): Linux can't
+  # open /dev/stdin when stdin is a socket.
+  local first
+  if [ -z "$HOOK_PAYLOAD" ] && IFS= read -r -t 1 -n 1 first; then
+    HOOK_PAYLOAD="$first$(cat)"
   fi
 }

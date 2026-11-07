@@ -73,3 +73,9 @@ big="$(python3 -c 'import json; print(json.dumps({"hook_event_name": "PostCompac
 tmux_t set-option -p -t "$pane" @agent_state running
 run_hook "$big"
 assert_eq "idle" "$(option @agent_state)" "oversized payload still parsed"
+
+# A payload that arrives after the hook has started (a loaded machine) still
+# lands.
+tmux_t set-option -p -t "$pane" @agent_state running
+{ sleep 0.3; printf '%s' '{"hook_event_name":"Stop"}'; } | bash "$ROOT_DIR/hooks/claude.sh"
+assert_eq "done" "$(option @agent_state)" "late payload still parsed"
