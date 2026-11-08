@@ -32,7 +32,7 @@ Horizontal mode claims one extra status line:
 | `*` | running |
 | `**` | subagent running |
 | `?` | needs input — persists until the prompt is actually answered |
-| `+` | done — cleared to `·` when you visit the pane |
+| `+` | done — cleared to `·` when you visit the pane; never shown on the pane you're in |
 | `!` | error |
 | `·` | idle (alive, waiting for work) |
 

@@ -129,8 +129,9 @@ fi
 # same session included, which is what acknowledges a badge click on the
 # window already in view. The first two also fire for windows nobody is
 # looking at, so the acknowledgement requires a client viewing the window
-# (window_active_clients). Array indices keep clear of user-defined hooks on
-# the same events.
+# (window_active_clients). The hook writer applies the same test when a turn
+# ends (lib/hook-lib.sh), so the pane in view never shows "+". Array indices
+# keep clear of user-defined hooks on the same events.
 acknowledge='if-shell -F "#{&&:#{window_active_clients},#{==:#{@agent_state},done}}" "set-option -p @agent_state idle"'
 # Denials emit no hook event, so needs-input badges are re-verified against
 # the pane's actual screen on navigation — but only when one exists (the

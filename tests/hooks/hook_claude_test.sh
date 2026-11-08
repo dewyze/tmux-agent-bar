@@ -79,7 +79,7 @@ assert_contains "$(log)" "@agent_subagents 0" "count reaches 0"
 # Reset guard: a non-subagent terminal event zeroes a stuck refcount
 printf '3' > "$COUNT_FILE"
 run_hook '{"hook_event_name":"Stop"}'
-assert_contains "$(log)" "@agent_state done" "done state"
+assert_contains "$(log)" "@agent_state #{?#{&&:#{pane_active},#{window_active_clients}},idle,done}" "done state, idle if in view"
 assert_contains "$(log)" "@agent_subagents 0" "reset guard zeroes count"
 
 # needs-input leaves the refcount alone

@@ -105,11 +105,21 @@ run_agent_hook() {
   state="${resolved% *}"
   count="${resolved##* }"
 
+  # A turn that ends in a pane someone is looking at has been seen: done
+  # would leave a "+" they must navigate away and back to clear. tmux checks
+  # as it writes, with the plugin's acknowledgement test (agent-bar.tmux):
+  # the active pane of a window a client is viewing.
+  local state_write=(set-option -p -t "$pane" @agent_state "$state")
+  if [ "$state" = "done" ]; then
+    state_write=(set-option -pF -t "$pane" @agent_state
+      '#{?#{&&:#{pane_active},#{window_active_clients}},idle,done}')
+  fi
+
   # EPOCHSECONDS is bash 5+; bash 3.2 falls back to date.
   local version=unknown write
   read -r version 2>/dev/null <"$root_dir/VERSION"
   write=(set-option -p -t "$pane" @agent_app "$app"
-    \; set-option -p -t "$pane" @agent_state "$state"
+    \; "${state_write[@]}"
     \; set-option -p -t "$pane" @agent_subagents "$count"
     \; set-option -p -t "$pane" @agent_updated "${EPOCHSECONDS:-$(date +%s)}"
     \; set-option -p -t "$pane" @agent_writer_version "$version"
