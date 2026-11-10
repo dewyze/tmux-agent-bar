@@ -68,8 +68,9 @@ fi
 # Mouse bindings. Guards dispatch badge clicks (the bar's line, a range
 # naming a pane id); the else-arms REPLAY tmux's default bindings verbatim
 # (3.7b key-bindings.c) so non-badge status clicks keep working — a plain
-# if-shell with no else eats them silently. Generated as a conf fragment:
-# tmux's native {} quoting beats bash escaping for the nested menu.
+# if-shell with no else eats them silently. A conf fragment on stdin:
+# tmux's native {} quoting beats bash escaping for the nested menu, and
+# nothing is written into the plugin directory.
 # @agent_bar_mouse off leaves the mouse keys entirely untouched.
 if [ "$(bar_option mouse on)" != "off" ]; then
   # Badge clicks land on the bar's line (or two lines in cross_session=line
@@ -83,8 +84,7 @@ if [ "$(bar_option mouse on)" != "off" ]; then
   else
     on_bar="#{==:#{mouse_status_line},$line}"
   fi
-  bindings="$CURRENT_DIR/.bindings.generated.conf"
-  cat > "$bindings" <<EOF
+  tmux source-file - <<EOF
 bind-key -n MouseDown1Status {
   if-shell -F "#{&&:${on_bar},#{m/r:^[%@$][0-9]+\$,#{mouse_status_range}}}" {
     run-shell "$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'"
@@ -116,7 +116,6 @@ bind-key -n MouseDown3Status {
   }
 }
 EOF
-  tmux source-file "$bindings"
 fi
 
 # Navigating to an agent pane acknowledges done (a seen "+" has no residual

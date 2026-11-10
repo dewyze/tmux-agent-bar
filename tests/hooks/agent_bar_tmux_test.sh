@@ -8,10 +8,14 @@ STATUS_FILE="$TEST_TMP/status_value"
 POSITION_FILE="$TEST_TMP/position_value"
 STYLE_FILE="$TEST_TMP/style_value"
 SIDE_FAIL="$TEST_TMP/side_fail"
+BINDINGS_FILE="$TEST_TMP/bindings.conf"
 mkdir -p "$TEST_TMP/bin"
 cat > "$TEST_TMP/bin/tmux" <<STUB
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$STUB_LOG"
+if [ "\$*" = "source-file -" ]; then
+  cat > "$BINDINGS_FILE"
+fi
 if [ "\$1" = "show-options" ]; then
   case "\$*" in
     *" status") cat "$STATUS_FILE" 2>/dev/null ;;
@@ -29,7 +33,7 @@ chmod +x "$TEST_TMP/bin/tmux"
 export PATH="$TEST_TMP/bin:$PATH"
 
 run_plugin() {
-  rm -f "$STUB_LOG"
+  rm -f "$STUB_LOG" "$BINDINGS_FILE"
   printf '%s' "$1" > "$STATUS_FILE"
   bash "$ROOT_DIR/agent-bar.tmux"
 }
@@ -40,12 +44,13 @@ log="$(cat "$STUB_LOG")"
 assert_contains "$log" "set-option -g status 2" "status raised to 2"
 assert_contains "$log" "set-option -gu side-status" "status mode undoes side claims"
 assert_contains "$log" "set-option -g status-format[1] #{S:" "bar format installed"
-# Mouse bindings are generated as a tmux conf fragment (native {} quoting)
-# and sourced; non-badge clicks must fall through to replayed tmux defaults.
-assert_contains "$log" "source-file" "bindings fragment sourced"
-bindings="$ROOT_DIR/.bindings.generated.conf"
-[ -f "$bindings" ] || fail "bindings fragment not generated"
-b="$(cat "$bindings")"
+# Mouse bindings are a tmux conf fragment (native {} quoting) sourced from
+# stdin, so nothing is written into the plugin directory (a read-only
+# install works); non-badge clicks must fall through to replayed defaults.
+assert_contains "$log" "source-file -" "bindings fragment sourced from stdin"
+assert_not_contains "$log" "source-file $ROOT_DIR" "no fragment file in the plugin directory"
+[ -s "$BINDINGS_FILE" ] || fail "no bindings fragment on stdin"
+b="$(cat "$BINDINGS_FILE")"
 assert_contains "$b" "MouseDown1Status" "left-click bound"
 assert_contains "$b" "MouseDown3Status" "right-click bound"
 assert_contains "$b" "mouse_status_line" "guard on status line"
@@ -92,7 +97,7 @@ assert_not_contains "$log" "side-status-format[0]" "no array indexing on the str
 assert_contains "$log" "set-option -gu status-format[1]" "side mode undoes status format"
 assert_not_contains "$log" "set-option -g status 2" "side mode leaves status count alone"
 
-b="$(cat "$ROOT_DIR/.bindings.generated.conf")"
+b="$(cat "$BINDINGS_FILE")"
 assert_not_contains "$b" "mouse_status_line" "side-mode guard is pattern-only"
 assert_contains "$b" "jump.sh" "side-mode bindings present"
 
