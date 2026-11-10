@@ -2,13 +2,18 @@
 
 # The harness-agnostic state machine (SCHEMA.md): pure function of
 # (state, subagent_event, count) -> "state count" on stdout, or "skip" when
-# nothing must be written. Harness writers share this; only parsers vary.
+# nothing must be written. The state may be a tmux format, evaluated as it
+# is written; a count of "-" leaves the stored count alone. Harness writers
+# share this; only parsers vary.
 #
 #   start  -> increment refcount, force subagent-running
 #   stop   -> decrement; subagent-running while any remain; a stop at count
 #             0 is stale (e.g. a background agent finishing after Stop
 #             already wrote done) and must not write
-#   soft   -> activity: respects the refcount, never resets it
+#   soft   -> activity: subagent-running while any remain. tmux reads the
+#             count as it writes and the count is left alone: hooks run
+#             concurrently, and a start or stop landing between this
+#             hook's read and write must not be undone
 #   (none) -> terminal states (running/done/idle) drain the refcount so a
 #             lost stop can't pin subagent-running; attention states
 #             (needs-input/error) preserve it
@@ -30,9 +35,8 @@ resolve_agent_state() {
       fi
       ;;
     soft)
-      if [ "$count" -gt 0 ]; then
-        state="subagent-running"
-      fi
+      state="#{?#{e|>:#{@agent_subagents},0},subagent-running,$state}"
+      count=-
       ;;
     *)
       case "$state" in
@@ -109,21 +113,22 @@ run_agent_hook() {
   # would leave a "+" they must navigate away and back to clear. tmux checks
   # as it writes, with the plugin's acknowledgement test (agent-bar.tmux):
   # the active pane of a window a client is viewing.
-  local state_write=(set-option -p -t "$pane" @agent_state "$state")
   if [ "$state" = "done" ]; then
-    state_write=(set-option -pF -t "$pane" @agent_state
-      '#{?#{&&:#{pane_active},#{window_active_clients}},idle,done}')
+    state='#{?#{&&:#{pane_active},#{window_active_clients}},idle,done}'
   fi
 
+  # The state is written with -F: a plain state word expands to itself.
   # EPOCHSECONDS is bash 5+; bash 3.2 falls back to date.
   local version=unknown write
   read -r version 2>/dev/null <"$root_dir/VERSION"
   write=(set-option -p -t "$pane" @agent_app "$app"
-    \; "${state_write[@]}"
-    \; set-option -p -t "$pane" @agent_subagents "$count"
+    \; set-option -pF -t "$pane" @agent_state "$state"
     \; set-option -p -t "$pane" @agent_updated "${EPOCHSECONDS:-$(date +%s)}"
     \; set-option -p -t "$pane" @agent_writer_version "$version"
     \; set-option -p -t "$pane" @agent_schema 1)
+  if [ "$count" != "-" ]; then
+    write+=(\; set-option -p -t "$pane" @agent_subagents "$count")
+  fi
   if [ -n "$transcript" ]; then
     write+=(\; set-option -p -t "$pane" @agent_transcript "$transcript")
   fi

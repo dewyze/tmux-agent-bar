@@ -21,9 +21,11 @@ check "running 0" running stop 1
 # Stale stop (count 0, e.g. background agent finishing after Stop): no write
 check "skip" running stop 0
 
-# Soft running (tool activity): respects subagent bookkeeping, never resets
-check "subagent-running 2" running soft 2
-check "running 0" running soft 0
+# Soft running (tool activity): tmux picks subagent-running from the count
+# as it writes, and the count is left alone, whatever this hook read
+# (hook_claude_tmux_test.sh and subagent_race_test.sh check the outcome)
+check "#{?#{e|>:#{@agent_subagents},0},subagent-running,running} -" running soft 2
+check "#{?#{e|>:#{@agent_subagents},0},subagent-running,running} -" running soft 0
 
 # Terminal events drain the refcount (lost SubagentStop can't stick)
 check "running 0" running "" 3

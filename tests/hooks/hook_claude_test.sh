@@ -30,7 +30,7 @@ log() { cat "$STUB_LOG" 2>/dev/null || true; }
 
 # Plain lifecycle event writes app, state, updated timestamp in one invocation
 run_hook '{"hook_event_name":"UserPromptSubmit"}'
-assert_contains "$(log)" "set-option -p -t %7 @agent_app claude ; set-option -p -t %7 @agent_state running" "batched write"
+assert_contains "$(log)" "set-option -p -t %7 @agent_app claude ; set-option -pF -t %7 @agent_state running" "batched write"
 assert_contains "$(log)" "@agent_updated " "timestamp written"
 assert_eq "1" "$(grep -c 'set-option' "$STUB_LOG")" "single tmux invocation for writes"
 
@@ -93,14 +93,13 @@ printf '0' > "$COUNT_FILE"
 run_hook '{"hook_event_name":"SubagentStop"}'
 assert_not_contains "$(log)" "set-option" "stale SubagentStop is a no-op"
 
-# PostToolUse is soft running: no refcount reset, subagent-running preserved
+# PostToolUse is soft running: tmux picks the state from the stored count
+# as it writes, and the count it read is not written back
+# (hook_claude_tmux_test.sh checks the outcome)
 printf '2' > "$COUNT_FILE"
 run_hook '{"hook_event_name":"PostToolUse"}'
-assert_contains "$(log)" "@agent_state subagent-running" "soft running respects subagents"
-assert_contains "$(log)" "@agent_subagents 2" "soft running preserves count"
-printf '0' > "$COUNT_FILE"
-run_hook '{"hook_event_name":"PostToolUse"}'
-assert_contains "$(log)" "@agent_state running" "soft running plain when no subagents"
+assert_contains "$(log)" "@agent_state #{?#{e|>:#{@agent_subagents},0},subagent-running,running}" "soft running follows the stored count"
+assert_not_contains "$(log)" "set-option -p -t %7 @agent_subagents" "soft running leaves the count alone"
 
 # Garbage count from tmux is treated as 0
 printf 'junk' > "$COUNT_FILE"

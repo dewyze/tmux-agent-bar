@@ -47,11 +47,22 @@ run_hook '{"hook_event_name":"SubagentStart"}'
 run_hook '{"hook_event_name":"SubagentStart"}'
 assert_eq "subagent-running" "$(option @agent_state)" "two subagents"
 assert_eq "2" "$(option @agent_subagents)" "refcount 2"
+run_hook '{"hook_event_name":"PostToolUse"}'
+assert_eq "subagent-running" "$(option @agent_state)" "tool activity keeps subagent-running"
+assert_eq "2" "$(option @agent_subagents)" "tool activity keeps the count"
 run_hook '{"hook_event_name":"SubagentStop"}'
 assert_eq "subagent-running" "$(option @agent_state)" "one subagent left"
 run_hook '{"hook_event_name":"SubagentStop"}'
 assert_eq "running" "$(option @agent_state)" "back to running"
 assert_eq "0" "$(option @agent_subagents)" "refcount drained"
+run_hook '{"hook_event_name":"PostToolUse"}'
+assert_eq "running" "$(option @agent_state)" "tool activity with no subagents"
+
+# No count stored yet counts as none
+tmux_t set-option -pu -t "$pane" @agent_subagents
+run_hook '{"hook_event_name":"PostToolUse"}'
+assert_eq "running" "$(option @agent_state)" "tool activity with no count stored"
+assert_eq "" "$(option @agent_subagents)" "tool activity stores no count"
 
 # A second pane's state is independent
 tmux_t split-window -d

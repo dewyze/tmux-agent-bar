@@ -87,10 +87,13 @@ Rules that keep the layering honest:
    *what happened*, the writer knows *what it means for stored state*.
    The machine lives in `lib/hook-lib.sh` (`resolve_agent_state`), pure
    and unit-tested — new harnesses share it and only add a parser.
-   Known debt, honest: the refcount is a
-   read-modify-write across two tmux invocations under async hooks — the one
-   race in the system (accepted; empirically self-heals). Two simultaneous SubagentStarts can under-count; the
-   reset guard makes it self-healing rather than sticky.
+   Tool activity (`soft`) never writes the count: tmux picks
+   `subagent-running` from the stored count as it writes, so it can't undo
+   a start or stop that lands mid-hook. Known debt, honest: start and stop
+   are still a read-modify-write across two tmux invocations under async
+   hooks — the one race in the system (accepted). Two simultaneous
+   SubagentStarts can under-count, so `**` drops to `*` early; the reset
+   guard makes it self-healing rather than sticky.
 3. The view never computes: no counts, no sorting, no time math. The standing
    budget for `#()` helpers in the format is **one**, currently unspent.
 4. Only the composition root claims shared tmux resources (format slot,
