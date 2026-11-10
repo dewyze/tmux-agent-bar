@@ -127,20 +127,16 @@ case "$out" in
 esac
 active_count="$(printf '%s' "$out" | grep -o 'fg=colour255 bg=colour239' | grep -c .)"
 [ "$active_count" -ge 2 ] || fail "active style not re-emitted after glyphs ($active_count)"
+# The style sits directly before each window label: after selecting db, db
+# carries the active style and api the inactive one
+api_id="$(tmux_t display-message -p -t work:api '#{window_id}')"
+db_id="$(tmux_t display-message -p -t work:db '#{window_id}')"
+assert_contains "$out" "#[fg=colour255 bg=colour239]#[range=user|$api_id]api" "active style on the selected window"
+assert_contains "$out" "#[fg=colour254 bg=colour236]#[range=user|$db_id]db" "inactive style on the other window"
 tmux_t select-window -t work:db
 out2="$(styled)"
-api_pos="${out2%%api*}"; db_pos="${out2%%db*}"
-case "${out2#*db}" in
-  *""*) ;; *) : ;;
-esac
-# api inactive now, db active: the token preceding each label must differ
-case "$out2" in
-  *"#[fg=colour255 bg=colour239]db"*|*"colour239]#{"*) ;;
-  *) case "$out2" in
-       *"bg=colour239"*) ;;
-       *) fail "active style did not follow selection: $out2" ;;
-     esac ;;
-esac
+assert_contains "$out2" "#[fg=colour255 bg=colour239]#[range=user|$db_id]db" "active style follows selection"
+assert_contains "$out2" "#[fg=colour254 bg=colour236]#[range=user|$api_id]api" "previous window drops to inactive"
 tmux_t set-option -gu @agent_bar_style_window
 tmux_t set-option -gu @agent_bar_style_window_active
 tmux_t set-option -pu -t "$db_pane" @agent_state
