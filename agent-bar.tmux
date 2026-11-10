@@ -80,22 +80,26 @@ if [ "$(bar_option mouse on)" != "off" ]; then
   # mode). In side mode there is no status line to key on — the id pattern
   # alone is the guard, which is safe: user| ranges exist only on our
   # surfaces.
+  # tmux names side status clicks MouseDown<n>SideStatus; their default
+  # bindings run the same commands as the status line's.
+  click="Status"
   if [ "$position" != "status" ]; then
     on_bar="1"
+    click="SideStatus"
   elif [ "$mode" = "line" ]; then
     on_bar="#{||:#{==:#{mouse_status_line},$line},#{==:#{mouse_status_line},$((line + 1))}}"
   else
     on_bar="#{==:#{mouse_status_line},$line}"
   fi
   tmux source-file - <<EOF
-bind-key -n MouseDown1Status {
+bind-key -n MouseDown1${click} {
   if-shell -F "#{&&:${on_bar},#{m/r:^[%@$][0-9]+\$,#{mouse_status_range}}}" {
     run-shell -C "switch-client -t '#{mouse_status_range}'"
   } {
     switch-client -t=
   }
 }
-bind-key -n MouseDown3Status {
+bind-key -n MouseDown3${click} {
   if-shell -F "#{&&:${on_bar},#{m/r:^%[0-9]+\$,#{mouse_status_range}}}" {
     display-menu -O -T 'Agent: #{S:#{W:#{P:#{?#{==:#{pane_id},#{mouse_status_range}},#{?#{@agent_name},#{@agent_name},#{@agent_app}},}}}}' -x M -y S \\
       'Jump' j "switch-client -t '#{mouse_status_range}'" \\

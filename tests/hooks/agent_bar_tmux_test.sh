@@ -51,8 +51,8 @@ assert_contains "$log" "source-file -" "bindings fragment sourced from stdin"
 assert_not_contains "$log" "source-file $ROOT_DIR" "no fragment file in the plugin directory"
 [ -s "$BINDINGS_FILE" ] || fail "no bindings fragment on stdin"
 b="$(cat "$BINDINGS_FILE")"
-assert_contains "$b" "MouseDown1Status" "left-click bound"
-assert_contains "$b" "MouseDown3Status" "right-click bound"
+assert_contains "$b" "bind-key -n MouseDown1Status " "left-click bound"
+assert_contains "$b" "bind-key -n MouseDown3Status " "right-click bound"
 assert_contains "$b" "mouse_status_line" "guard on status line"
 assert_contains "$b" "run-shell -C \"switch-client -t '#{mouse_status_range}'\"" "left-click jumps"
 assert_contains "$b" "[%@\$][0-9]" "left-click guard accepts pane/window/session ids"
@@ -99,6 +99,9 @@ assert_not_contains "$log" "set-option -g status 2" "side mode leaves status cou
 
 b="$(cat "$BINDINGS_FILE")"
 assert_not_contains "$b" "mouse_status_line" "side-mode guard is pattern-only"
+assert_contains "$b" "bind-key -n MouseDown1SideStatus " "side-mode left-click key"
+assert_contains "$b" "bind-key -n MouseDown3SideStatus " "side-mode right-click key"
+assert_not_contains "$b" "MouseDown1Status" "side mode leaves status-line clicks alone"
 assert_contains "$b" "switch-client -t '#{mouse_status_range}'" "side-mode bindings present"
 
 # Stock tmux (probe fails): falls back to the status-line bar
