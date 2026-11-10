@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# parse-claude.py: Claude Code hook payload -> "state\nsubagent_event\ntranscript" protocol.
+# parse-claude.py: Claude Code hook payload -> "state\nsubagent_event\ntranscript\nasker" protocol.
 . "$(dirname "$0")/../testlib.sh"
 
 parse() {
@@ -91,3 +91,13 @@ assert_eq "" "$(transcript_of '{"hook_event_name":"Stop"}')" "no transcript -> e
 # Event name fallbacks: argv, then CLAUDE_HOOK_EVENT_NAME env
 assert_eq "done" "$(state_of '{}' 'Stop')" "argv fallback"
 assert_eq "done" "$(printf '{}' | CLAUDE_HOOK_EVENT_NAME='Stop' python3 "$ROOT_DIR/lib/parse-claude.py" | sed -n '1p')" "env fallback"
+
+# Fourth line: who the event is from. Subagent events carry an agent_id;
+# the main agent's do not. A Notification never says who it is about, so
+# its line is blank.
+asker_of() { parse "$1" "${2:-}" | sed -n '4p'; }
+assert_eq "a1c9" "$(asker_of '{"hook_event_name":"PermissionRequest","agent_id":"a1c9"}')" "subagent request"
+assert_eq "main" "$(asker_of '{"hook_event_name":"PermissionRequest"}')" "main agent request"
+assert_eq "a1c9" "$(asker_of '{"hook_event_name":"PostToolUse","agent_id":"a1c9"}')" "subagent tool"
+assert_eq "main" "$(asker_of '{"hook_event_name":"PostToolUse"}')" "main agent tool"
+assert_eq "" "$(asker_of '{"hook_event_name":"Notification","notification_type":"permission_prompt"}')" "notification names nobody"

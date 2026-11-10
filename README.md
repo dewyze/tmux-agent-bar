@@ -258,9 +258,10 @@ any script can join the bar with one `set-option` per SCHEMA.md. PRs
 welcome for other harnesses (codex, cursor, opencode, ...); a full
 integration is two files:
 
-1. `lib/parse-<app>.py` — pure: payload on stdin → three lines
-   on stdout: state, subagent event (`start`/`stop`/`soft`/empty),
-   transcript path (or empty). Unknown events print nothing.
+1. `lib/parse-<app>.py` — pure: payload on stdin → up to four
+   lines on stdout: state, subagent event (`start`/`stop`/`soft`/empty),
+   transcript path (or empty), and optionally who the event is from (a
+   subagent's id, or `main`). Unknown events print nothing.
 2. `hooks/<app>.sh` — four lines:
 
    ```sh

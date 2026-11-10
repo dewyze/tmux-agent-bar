@@ -76,7 +76,7 @@ Layered; each layer knows only the one below it.
 
 Rules that keep the layering honest:
 
-1. Parsers are pure functions with a 3-line stdout protocol; adding a
+1. Parsers are pure functions with a 4-line stdout protocol; adding a
    harness means adding `lib/parse-<app>.py` plus a 4-line `hooks/<app>.sh`
    delegating to `run_agent_hook` — schema stamping, the state machine,
    exit-unsets, and tracing come free. `tests/hooks/new_harness_test.sh`
