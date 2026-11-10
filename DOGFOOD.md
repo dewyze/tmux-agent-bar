@@ -22,9 +22,9 @@ since, plus the two items round 1 left unchecked.
 - [ ] Rename (right-click → Rename, or `tmux set -p @agent_name reviewer`)
       → badge text becomes the name; empty rename → back to `claude`
 - [ ] Name survives restarting claude in that pane (user-owned)
-- [ ] Foreign-session groups (make a scratch session with an agent) show
-      `session/window` label; your own session's groups show bare window
-      names
+- [ ] Foreign-session groups (make a scratch session with an agent) sit
+      under a `▌ session` intro; your own session's groups show bare
+      window names
 
 ## Leftovers from round 1
 

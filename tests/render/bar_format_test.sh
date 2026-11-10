@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # lib/bar-format.sh prints the status-format[1] string; expanding it against a
-# real server must render one clickable badge per non-idle agent pane.
+# real server must render one clickable badge per agent pane (idle ones dim).
 . "$(dirname "$0")/../testlib.sh"
 
 command -v tmux >/dev/null 2>&1 || fail "tmux not installed"
@@ -35,7 +35,8 @@ shown() { render | sed 's/#\[[^]]*\]//g'; }
 # No agent state anywhere -> empty bar
 assert_eq "" "$(render | tr -d ' ')" "empty bar without agents"
 
-# One running agent renders a clickable badge with session:window label
+# One running agent renders a clickable badge under its session's intro and
+# a bare window label
 tmux_t set-option -p -t "$agent_pane" @agent_state running
 out="$(render)"
 assert_contains "$out" "#[range=user|$agent_pane]" "range opens with pane id"

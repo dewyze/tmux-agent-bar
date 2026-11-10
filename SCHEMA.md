@@ -94,7 +94,9 @@ tmux set-option -p -t "$TMUX_PANE" @agent_schema 1 \; \
   set-option -p -t "$TMUX_PANE" @agent_state running \; \
   set-option -p -t "$TMUX_PANE" @agent_updated "$(date +%s)"
 # ... long-running work ...
-tmux set-option -p -t "$TMUX_PANE" @agent_state done \; \
+tmux set-option -p -t "$TMUX_PANE" @agent_schema 1 \; \
+  set-option -p -t "$TMUX_PANE" @agent_app build \; \
+  set-option -p -t "$TMUX_PANE" @agent_state done \; \
   set-option -p -t "$TMUX_PANE" @agent_updated "$(date +%s)"
 ```
 

@@ -12,7 +12,7 @@ property, not a feature.
                         WRITE PATH (event-driven, per hook event)
 ┌──────────────┐  JSON on stdin   ┌──────────────────┐ state/subagent/transcript
 │ Claude Code  │ ───────────────► │ hooks/claude.sh  │ ◄── lib/parse-claude.py
-│ (any harness)│   12 lifecycle   │ (thin IO wrapper)│      (pure: event → state)
+│ (any harness)│   13 lifecycle   │ (thin IO wrapper)│      (pure: event → state)
 └──────────────┘      events      └────────┬─────────┘
                                            │ one batched `tmux set-option -p`
                                            ▼
@@ -26,18 +26,18 @@ property, not a feature.
               READ PATH (render) │                │ READ PATH (truth check)
                                  ▼                ▼
                   ┌───────────────────────┐   ┌──────────────────────────────┐
-                  │ status-format[1]      │   │ navigation hooks [181-183]   │
-                  │ (lib/bar-format.sh    │   │ done → idle (pure tmux)      │
-                  │ bakes it at load; the │   │ needs-input → verify against │
-                  │ server re-expands it  │   │ transcript tail              │
-                  │ on every option write)│   │ (scripts/verify-needs-input  │
-                  └───────────┬───────────┘   │  + lib/transcript-progressed)│
-                              │               └──────────────────────────────┘
+                  │ status-format[1] or   │   │ navigation hooks [181-183]   │
+                  │ side-status-format    │   │ done → idle (pure tmux)      │
+                  │ (lib/bar-format.sh    │   │ needs-input → verify against │
+                  │ bakes it at load; the │   │ transcript tail              │
+                  │ server re-expands it  │   │ (scripts/verify-needs-input  │
+                  │ on every option write)│   │  + lib/transcript-progressed)│
+                  └───────────┬───────────┘   └──────────────────────────────┘
                               ▼
                   ┌───────────────────────┐       INTERACTION PATH
-                  │ status line 1: badges │  clicks (MouseDown1/3Status)
-                  │ #[range=user|%id] ... │ ─────► scripts/jump.sh (navigate)
-                  └───────────────────────┘        scripts/menu.sh (display-menu)
+                  │ the bar: badges       │  clicks (MouseDown1/3Status)
+                  │ #[range=user|%id] ... │ ─────► switch-client (jump)
+                  └───────────────────────┘        display-menu (agent menu)
 ```
 
 Key properties:
@@ -68,16 +68,16 @@ Layered; each layer knows only the one below it.
 | **Parsers** (pure) | `lib/parse-claude.py` | harness payload → `(state, subagent_event, transcript)`; one file per harness, no side effects, no tmux | never |
 | **Writer** | `hooks/claude.sh`, `lib/hook-lib.sh` | stdin/argv plumbing, pane identity (`TMUX_PANE`), subagent refcount state machine, batched option writes, trace | writes options |
 | **Store** | tmux server (pane user options) | the entire runtime state | is tmux |
-| **View** (pure) | `lib/bar-format.sh` | emits the format string; glyphs, styles, ranges, label rules | never (string out) |
+| **View** (pure) | `lib/bar-format.sh` | emits the format string; glyphs, styles, ranges, label rules | reads `@agent_bar_*` options at load (string out) |
 | **Verifiers** | `scripts/verify-needs-input.sh`, `lib/transcript-progressed.py` | reconcile stored state against external truth (transcript) | reads + one write |
-| **Interactions** | `scripts/jump.sh`, `scripts/menu.sh` | one action per file, argv pre-validated, no format context | commands |
-| **Composition root** | `agent-bar.tmux` | wires view into `status-format[1]`, binds mouse + navigation hooks; the only file that installs anything | config |
+| **Interactions** | mouse bindings (installed by `agent-bar.tmux`) | a click jumps (`switch-client`) or opens the agent menu (`display-menu`), inside tmux with no process; guards validate the clicked range first | commands |
+| **Composition root** | `agent-bar.tmux` | wires view into `status-format[1]` or `side-status-format`, binds mouse + navigation hooks; the only file that installs anything | config |
 | **Distribution** | `.claude-plugin/` + `hooks/hooks.json` (packaged path, primary), `scripts/install-claude-hooks.sh` (settings fallback) | register the writer with the harness; both paths must declare identical events (drift-guarded by test). The packaged writer runs from Claude's copy of the repo, so it stamps `@agent_writer_version` (from `VERSION`) to make copy/checkout skew observable; `scripts/reset.sh` restores a clean state | — |
 
 Rules that keep the layering honest:
 
 1. Parsers are pure functions with a 3-line stdout protocol; adding a
-   harness means adding `lib/parse-<app>.py` plus a 3-line `hooks/<app>.sh`
+   harness means adding `lib/parse-<app>.py` plus a 4-line `hooks/<app>.sh`
    delegating to `run_agent_hook` — schema stamping, the state machine,
    exit-unsets, and tracing come free. `tests/hooks/new_harness_test.sh`
    executes this recipe with a fake harness, so "easy to add" is a tested

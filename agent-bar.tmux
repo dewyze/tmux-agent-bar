@@ -136,7 +136,7 @@ fi
 # keep clear of user-defined hooks on the same events.
 acknowledge='if-shell -F "#{&&:#{window_active_clients},#{==:#{@agent_state},done}}" "set-option -p @agent_state idle"'
 # Denials emit no hook event, so needs-input badges are re-verified against
-# the pane's actual screen on navigation — but only when one exists (the
+# the agent's transcript on navigation — but only when one exists (the
 # format guard keeps steady-state navigation free of process spawns).
 any_needs_input='#{S:#{W:#{P:#{?#{==:#{@agent_state},needs-input},x,}}}}'
 verify="if-shell -F \"$any_needs_input\" \"run-shell -b '$CURRENT_DIR/scripts/verify-needs-input.sh'\""

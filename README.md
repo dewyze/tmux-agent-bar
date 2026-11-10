@@ -24,7 +24,7 @@ Horizontal mode claims one extra status line:
 
 ```
 [0] 0:vim  1:api*                                          14:23
-║ win1 │ * fixing tests │ ? review auth ║ win2 │ ·  ║ blog/api │ +
+║ win1 │ * fixing tests │ ? review auth ║ win2 │ · ▌ blog ║ api │ +
 ```
 
 | Glyph | State |
@@ -36,10 +36,10 @@ Horizontal mode claims one extra status line:
 | `!` | error |
 | `·` | idle (alive, waiting for work) |
 
-Badges group under their window's label; agents in other sessions get a
-`session/` prefix. A badge disappears only when its agent exits. Badge
-text is, in order of precedence: your rename, the harness's instance
-name, the harness itself (`claude`, ...).
+Badges group under their window's label; agents in other sessions group
+under their session's name. A badge disappears only when its agent exits.
+Badge text is your rename if you gave one, otherwise the harness
+(`claude`, ...).
 
 - **Left-click** a badge: jump to that pane (session, window, pane).
 - **Right-click** a badge: menu — jump, clear status, rename, kill pane.
@@ -239,8 +239,9 @@ that window's *active pane* only — the `#{P:...}` probe is what makes it
 Claude Code hook event (JSON on stdin)
   → hooks/claude.sh → lib/parse-claude.py     event → state
   → tmux set-option -p @agent_app/@agent_state/@agent_subagents/@agent_updated
-  → status-format[1] (lib/bar-format.sh)      S/W/P loops render badges
-  → MouseDown1Status / MouseDown3Status       jump / menu
+  → status-format[1] or side-status-format    S/W/P loops render badges
+    (lib/bar-format.sh)
+  → MouseDown1Status / MouseDown3Status       switch-client / menu
 ```
 
 States: `running`, `subagent-running` (refcounted, with a reset guard so
@@ -305,10 +306,10 @@ Ranked by expected daily leverage:
 2. **Desktop notifications on needs-input** — the hook knows the moment;
    `terminal-notifier` banner, deep-link click back to the pane.
 3. **Waiting-duration on badges** (`? api 4m`) — `@agent_updated` is already
-   recorded; needs the first persistent `#()` helper (formats can't do
-   now-minus-then).
-4. **Attention-first ordering** — formats can't sort; same `#()` helper as
-   duration.
+   recorded, and a status format can subtract it from now
+   (`#{e|-:%s,#{@agent_updated}}`); it refreshes on `status-interval`.
+4. **Attention-first ordering** — formats can't sort by state; needs the
+   first persistent `#()` helper.
 5. **Hookless agent detection** — panes running `claude`/`codex` without
    hooks installed still get a dim badge via command-name heuristics.
 6. **More agents** — codex, cursor, kiro, opencode, pi via the pane-option
