@@ -24,7 +24,7 @@ tmux_t new-session -d -x 80 -y 24
 bash "$ROOT_DIR/agent-bar.tmux"
 
 left="$(tmux_t list-keys -T root | grep "MouseDown1Status")"
-assert_contains "$left" "jump.sh" "badge click present"
+assert_contains "$left" "switch-client -t '#{mouse_status_range}'" "badge click present"
 assert_contains "$left" "switch-client -t =" "default fall-through present"
 
 right="$(tmux_t list-keys -T root | grep "MouseDown3Status")"
@@ -44,5 +44,5 @@ tmux_2 new-session -d -x 80 -y 24
 tmux_2 set-option -g @agent_bar_mouse off
 bash "$ROOT_DIR/agent-bar.tmux"
 off_left="$(tmux_2 list-keys -T root | grep "MouseDown1Status")"
-assert_not_contains "$off_left" "jump.sh" "mouse off leaves left-click alone"
+assert_not_contains "$off_left" "mouse_status_range" "mouse off leaves left-click alone"
 assert_contains "$off_left" "switch-client -t =" "stock default untouched"

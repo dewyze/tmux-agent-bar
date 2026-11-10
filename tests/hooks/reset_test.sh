@@ -39,4 +39,4 @@ done
 assert_eq "" "$(tmux_t show-options -pv -t "$pane_b" @agent_state 2>/dev/null)" "@agent_state cleared on pane_b"
 
 assert_eq "2" "$(tmux_t show-options -gv status)" "bar reapplied"
-[ "$(tmux_t list-keys | grep -c agent-bar)" -ge 2 ] || fail "bindings reapplied"
+[ "$(tmux_t list-keys | grep -c mouse_status_range)" -ge 2 ] || fail "bindings reapplied"

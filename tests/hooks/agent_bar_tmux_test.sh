@@ -54,7 +54,7 @@ b="$(cat "$BINDINGS_FILE")"
 assert_contains "$b" "MouseDown1Status" "left-click bound"
 assert_contains "$b" "MouseDown3Status" "right-click bound"
 assert_contains "$b" "mouse_status_line" "guard on status line"
-assert_contains "$b" "jump.sh" "left-click jumps"
+assert_contains "$b" "run-shell -C \"switch-client -t '#{mouse_status_range}'\"" "left-click jumps"
 assert_contains "$b" "[%@\$][0-9]" "left-click guard accepts pane/window/session ids"
 assert_contains "$b" "switch-client -t=" "left-click default replayed"
 assert_contains "$b" "display-menu" "right-click opens menu directly"
@@ -99,7 +99,7 @@ assert_not_contains "$log" "set-option -g status 2" "side mode leaves status cou
 
 b="$(cat "$BINDINGS_FILE")"
 assert_not_contains "$b" "mouse_status_line" "side-mode guard is pattern-only"
-assert_contains "$b" "jump.sh" "side-mode bindings present"
+assert_contains "$b" "switch-client -t '#{mouse_status_range}'" "side-mode bindings present"
 
 # Stock tmux (probe fails): falls back to the status-line bar
 touch "$SIDE_FAIL"

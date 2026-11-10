@@ -70,7 +70,10 @@ fi
 # (3.7b key-bindings.c) so non-badge status clicks keep working — a plain
 # if-shell with no else eats them silently. A conf fragment on stdin:
 # tmux's native {} quoting beats bash escaping for the nested menu, and
-# nothing is written into the plugin directory.
+# nothing is written into the plugin directory. A click jumps with
+# switch-client, which also selects a pane target's window and pane; run-shell
+# -C expands #{mouse_status_range} for it (an if-shell branch is not
+# expanded) and runs it in tmux, with no process.
 # @agent_bar_mouse off leaves the mouse keys entirely untouched.
 if [ "$(bar_option mouse on)" != "off" ]; then
   # Badge clicks land on the bar's line (or two lines in cross_session=line
@@ -87,7 +90,7 @@ if [ "$(bar_option mouse on)" != "off" ]; then
   tmux source-file - <<EOF
 bind-key -n MouseDown1Status {
   if-shell -F "#{&&:${on_bar},#{m/r:^[%@$][0-9]+\$,#{mouse_status_range}}}" {
-    run-shell "$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'"
+    run-shell -C "switch-client -t '#{mouse_status_range}'"
   } {
     switch-client -t=
   }
@@ -95,7 +98,7 @@ bind-key -n MouseDown1Status {
 bind-key -n MouseDown3Status {
   if-shell -F "#{&&:${on_bar},#{m/r:^%[0-9]+\$,#{mouse_status_range}}}" {
     display-menu -O -T 'Agent: #{S:#{W:#{P:#{?#{==:#{pane_id},#{mouse_status_range}},#{?#{@agent_name},#{@agent_name},#{@agent_app}},}}}}' -x M -y S \\
-      'Jump' j "run-shell \\"$CURRENT_DIR/scripts/jump.sh '#{mouse_status_range}'\\"" \\
+      'Jump' j "switch-client -t '#{mouse_status_range}'" \\
       'Clear status' c "set-option -p -t '#{mouse_status_range}' @agent_state idle" \\
       'Rename' n "command-prompt -p 'Agent name:' { set-option -p -t '#{mouse_status_range}' @agent_name '%%' }" \\
       '' \\
