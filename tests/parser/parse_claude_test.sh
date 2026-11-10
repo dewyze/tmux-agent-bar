@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# parse-claude.py: Claude Code hook payload -> "state\nsubagent_event" protocol.
+# parse-claude.py: Claude Code hook payload -> "state\nsubagent_event\ntranscript" protocol.
 . "$(dirname "$0")/../testlib.sh"
 
 parse() {

@@ -1,9 +1,10 @@
 """Map a Claude Code hook payload to an agent state.
 
 Input: JSON payload on stdin; event name falls back to argv[1],
-then $CLAUDE_HOOK_EVENT_NAME. Output protocol is two lines: state, then
-subagent lifecycle event ("start"/"stop" or blank). No output means the
-hook should not write state.
+then $CLAUDE_HOOK_EVENT_NAME. Output protocol is three lines: state,
+subagent lifecycle event ("start"/"stop"/"soft" or blank), then the
+transcript path (blank when absent). No output means the hook should not
+write state.
 
 Event names and notification types verified against
 https://code.claude.com/docs/en/hooks.md (October 2026).
