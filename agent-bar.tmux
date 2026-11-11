@@ -82,10 +82,14 @@ if [ "$(bar_option mouse on)" != "off" ]; then
   # surfaces.
   # tmux names side status clicks MouseDown<n>SideStatus; their default
   # bindings run the same commands as the status line's.
+  # The badge menu opens at the mouse's column: above the status line (S),
+  # or on the clicked row of the side bar (M).
   click="Status"
+  menu_y="S"
   if [ "$position" != "status" ]; then
     on_bar="1"
     click="SideStatus"
+    menu_y="M"
   elif [ "$mode" = "line" ]; then
     on_bar="#{||:#{==:#{mouse_status_line},$line},#{==:#{mouse_status_line},$((line + 1))}}"
   else
@@ -101,7 +105,7 @@ bind-key -n MouseDown1${click} {
 }
 bind-key -n MouseDown3${click} {
   if-shell -F "#{&&:${on_bar},#{m/r:^%[0-9]+\$,#{mouse_status_range}}}" {
-    display-menu -O -T 'Agent: #{S:#{W:#{P:#{?#{==:#{pane_id},#{mouse_status_range}},#{?#{@agent_name},#{@agent_name},#{@agent_app}},}}}}' -x M -y S \\
+    display-menu -O -T 'Agent: #{S:#{W:#{P:#{?#{==:#{pane_id},#{mouse_status_range}},#{?#{@agent_name},#{@agent_name},#{@agent_app}},}}}}' -x M -y ${menu_y} \\
       'Jump' j "switch-client -t '#{mouse_status_range}'" \\
       'Clear status' c "set-option -p -t '#{mouse_status_range}' @agent_state idle" \\
       'Rename' n "command-prompt -p 'Agent name:' { set-option -p -t '#{mouse_status_range}' @agent_name '%%' }" \\

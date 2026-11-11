@@ -114,6 +114,15 @@ assert_eq "misc" "$(client '#{window_name}')" "session click keeps its window"
 reset_view
 click 2 "?"
 sleep 0.3
+# The menu opens beside the click, not at the bottom of the screen: the
+# badge's row is one of the menu's rows.
+screen="$(tmux_o capture-pane -p)"
+badge_row="$(printf '%s\n' "$screen" | cut -c1-24 | grep -n -m1 -F '?' | cut -d: -f1)"
+menu_top="$(printf '%s\n' "$screen" | grep -n -m1 -F 'Agent:' | cut -d: -f1)"
+menu_bottom="$(printf '%s\n' "$screen" | grep -n -m1 -F 'Kill pane' | cut -d: -f1)"
+[ -n "$menu_top" ] && [ -n "$menu_bottom" ] || fail "no menu on screen: [$screen]"
+[ "$badge_row" -ge "$menu_top" ] && [ "$badge_row" -le "$((menu_bottom + 1))" ] ||
+  fail "menu rows $menu_top-$((menu_bottom + 1)) miss the badge's row $badge_row: [$screen]"
 tmux_o send-keys j
 wait_client home '#{client_session}'
 assert_eq "home" "$(client '#{client_session}')" "menu jump switches session"
