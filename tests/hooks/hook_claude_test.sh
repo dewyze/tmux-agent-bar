@@ -58,22 +58,27 @@ rm -f "$STUB_LOG"
 printf '%s' '{"hook_event_name":"Stop"}' | TMUX_PANE="" bash "$ROOT_DIR/hooks/claude.sh"
 assert_not_contains "$(log)" "set-option" "no writes without TMUX_PANE"
 
+# Subagent and tool events write their state behind a guard: a "?" asked by
+# another agent stays up (blocked_agent_test.sh checks the outcome). These
+# payloads carry no agent_id, so they are from the main agent.
+kept='#{?#{&&:#{==:#{@agent_state},needs-input},#{&&:#{@agent_asker},#{!=:#{@agent_asker},main}}},needs-input,'
+
 # Subagent refcount: start increments and forces subagent-running
 printf '1' > "$COUNT_FILE"
 run_hook '{"hook_event_name":"SubagentStart"}'
-assert_contains "$(log)" "@agent_state subagent-running" "start state"
+assert_contains "$(log)" "@agent_state ${kept}subagent-running} ;" "start state"
 assert_contains "$(log)" "@agent_subagents 2" "start increments"
 
 # stop decrements; still subagent-running while count > 0
 printf '2' > "$COUNT_FILE"
 run_hook '{"hook_event_name":"SubagentStop"}'
-assert_contains "$(log)" "@agent_state subagent-running" "stop with remaining subagents"
+assert_contains "$(log)" "@agent_state ${kept}subagent-running} ;" "stop with remaining subagents"
 assert_contains "$(log)" "@agent_subagents 1" "stop decrements"
 
 # last stop returns to running; count clamps at 0
 printf '1' > "$COUNT_FILE"
 run_hook '{"hook_event_name":"SubagentStop"}'
-assert_contains "$(log)" "@agent_state running" "last stop back to running"
+assert_contains "$(log)" "@agent_state ${kept}running} ;" "last stop back to running"
 assert_contains "$(log)" "@agent_subagents 0" "count reaches 0"
 
 # Reset guard: a non-subagent terminal event zeroes a stuck refcount
@@ -86,6 +91,7 @@ assert_contains "$(log)" "@agent_subagents 0" "reset guard zeroes count"
 printf '2' > "$COUNT_FILE"
 run_hook '{"hook_event_name":"PermissionRequest"}'
 assert_contains "$(log)" "@agent_subagents 2" "needs-input preserves count"
+assert_contains "$(log)" "@agent_asker main ;" "needs-input records who asked"
 
 # A stale SubagentStop (count already 0, e.g. a background agent finishing
 # after Stop) must not write anything — it would resurrect a done badge
@@ -98,7 +104,7 @@ assert_not_contains "$(log)" "set-option" "stale SubagentStop is a no-op"
 # (hook_claude_tmux_test.sh checks the outcome)
 printf '2' > "$COUNT_FILE"
 run_hook '{"hook_event_name":"PostToolUse"}'
-assert_contains "$(log)" "@agent_state #{?#{e|>:#{@agent_subagents},0},subagent-running,running}" "soft running follows the stored count"
+assert_contains "$(log)" "@agent_state ${kept}#{?#{e|>:#{@agent_subagents},0},subagent-running,running}} ;" "soft running follows the stored count"
 assert_not_contains "$(log)" "set-option -p -t %7 @agent_subagents" "soft running leaves the count alone"
 
 # Garbage count from tmux is treated as 0
@@ -111,6 +117,7 @@ run_hook '{"hook_event_name":"SessionEnd"}'
 assert_contains "$(log)" "set-option -pu -t %7 @agent_state" "exit unsets state"
 assert_contains "$(log)" "set-option -pu -t %7 @agent_app" "exit unsets app"
 assert_contains "$(log)" "set-option -pu -t %7 @agent_transcript" "exit unsets transcript"
+assert_contains "$(log)" "set-option -pu -t %7 @agent_asker" "exit unsets asker"
 assert_not_contains "$(log)" "@agent_state exit" "exit is not written as a state"
 assert_contains "$(log)" "set-option -pu -t %7 @agent_schema" "exit unsets schema"
 assert_not_contains "$(log)" "@agent_name" "exit leaves user-owned name alone"

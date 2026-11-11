@@ -50,8 +50,10 @@ resolve_agent_state() {
 # The generic harness writer: everything after parsing is identical for
 # every agent. A new harness integration is exactly two files:
 #   lib/parse-<app>.py  — pure: payload on stdin (+ optional event
-#                         argv) -> 3-line protocol on stdout:
-#                         state, subagent event (start/stop/soft), transcript
+#                         argv) -> 4-line protocol on stdout:
+#                         state, subagent event (start/stop/soft),
+#                         transcript, who the event is from (an agent id,
+#                         "main", or blank; the line is optional)
 #   hooks/<app>.sh      — four lines: source this file, run_agent_hook <app>
 # Schema stamping, the subagent state machine, exit-unsets, tracing, and
 # batched writes all come from here (see SCHEMA.md for the contract).
@@ -68,11 +70,14 @@ run_agent_hook() {
 
   resolve_hook_input "$@"
 
-  local result state subagent_event transcript
+  local result state subagent_event transcript asker
   # On stdin, not in the environment: exec caps an environment variable
   # (1MB on macOS, 128KB on Linux) and a big payload would be dropped.
   result="$(python3 "$lib_dir/parse-$app.py" "$HOOK_EVENT_ARG" <<<"$HOOK_PAYLOAD")" || return 0
-  { IFS= read -r state; IFS= read -r subagent_event; IFS= read -r transcript; } <<<"$result"
+  { IFS= read -r state; IFS= read -r subagent_event; IFS= read -r transcript; IFS= read -r asker; } <<<"$result"
+  # The asker goes into a tmux format below: anything but a plain id is
+  # dropped, which falls back to not telling agents apart.
+  [[ "$asker" =~ ^[A-Za-z0-9_-]+$ ]] || asker=""
 
   # Opt-in diagnostics: `tmux set -g @agent_bar_trace /path/to/log` records
   # every event (including no-ops) with its parse result.
@@ -95,6 +100,7 @@ run_agent_hook() {
       set-option -pu -t "$pane" @agent_subagents \; \
       set-option -pu -t "$pane" @agent_updated \; \
       set-option -pu -t "$pane" @agent_transcript \; \
+      set-option -pu -t "$pane" @agent_asker \; \
       set-option -pu -t "$pane" @agent_writer_version \; \
       set-option -pu -t "$pane" @agent_schema 2>/dev/null
     return 0
@@ -117,12 +123,31 @@ run_agent_hook() {
     state='#{?#{&&:#{pane_active},#{window_active_clients}},idle,done}'
   fi
 
+  # A "?" belongs to the agent that asked (@agent_asker): the main agent or
+  # one subagent. Tool and subagent events from anyone else leave it up;
+  # tmux compares as it writes. A "?" with no asker recorded clears on any
+  # activity. A needs-input event that does not say who asked (a
+  # notification) keeps the asker of a "?" already up.
+  local asker_write=""
+  if [ "$state" = "needs-input" ]; then
+    asker_write="$asker"
+    if [ -z "$asker" ]; then
+      asker_write='#{?#{==:#{@agent_state},needs-input},#{@agent_asker},main}'
+    fi
+  elif [ -n "$subagent_event" ] && [ -n "$asker" ]; then
+    state="#{?#{&&:#{==:#{@agent_state},needs-input},#{&&:#{@agent_asker},#{!=:#{@agent_asker},$asker}}},needs-input,$state}"
+  fi
+
   # The state is written with -F: a plain state word expands to itself.
   # EPOCHSECONDS is bash 5+; bash 3.2 falls back to date.
   local version=unknown write
   read -r version 2>/dev/null <"$root_dir/VERSION"
-  write=(set-option -p -t "$pane" @agent_app "$app"
-    \; set-option -pF -t "$pane" @agent_state "$state"
+  write=(set-option -p -t "$pane" @agent_app "$app")
+  if [ -n "$asker_write" ]; then
+    # Before the state: the format reads the state being replaced.
+    write+=(\; set-option -pF -t "$pane" @agent_asker "$asker_write")
+  fi
+  write+=(\; set-option -pF -t "$pane" @agent_state "$state"
     \; set-option -p -t "$pane" @agent_updated "${EPOCHSECONDS:-$(date +%s)}"
     \; set-option -p -t "$pane" @agent_writer_version "$version"
     \; set-option -p -t "$pane" @agent_schema 1)

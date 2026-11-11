@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # The "adding a harness" recipe, executed: a new agent integration is exactly
-# (1) a pure parser lib/parse-<app>.py speaking the 3-line protocol and
+# (1) a pure parser lib/parse-<app>.py speaking the line protocol (the
+# fourth line is optional) and
 # (2) a 4-line hooks/<app>.sh delegating to run_agent_hook. This test builds
 # a fake harness from that recipe and proves it gets full writer behavior —
 # schema stamping, state machine, exit-unsets — for free.
@@ -17,7 +18,7 @@ export PATH="$TEST_TMP/bin:$PATH"
 export TMUX_PANE="%3"
 
 # A harness author writes these two files and nothing else.
-# Recipe file 1: the parser (pure, 3-line protocol)
+# Recipe file 1: the parser (pure; three lines, the fourth is optional)
 FAKE_ROOT="$TEST_TMP/plugin"
 mkdir -p "$FAKE_ROOT/hooks" "$FAKE_ROOT/lib"
 cp "$ROOT_DIR/lib/hook-lib.sh" "$FAKE_ROOT/lib/"

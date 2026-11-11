@@ -1,10 +1,11 @@
 """Map a Claude Code hook payload to an agent state.
 
 Input: JSON payload on stdin; event name falls back to argv[1],
-then $CLAUDE_HOOK_EVENT_NAME. Output protocol is three lines: state,
-subagent lifecycle event ("start"/"stop"/"soft" or blank), then the
-transcript path (blank when absent). No output means the hook should not
-write state.
+then $CLAUDE_HOOK_EVENT_NAME. Output protocol is four lines: state,
+subagent lifecycle event ("start"/"stop"/"soft" or blank), the transcript
+path (blank when absent), then who the event is from (a subagent's id,
+"main", or blank when the event does not say). No output means the hook
+should not write state.
 
 Event names and notification types verified against
 https://code.claude.com/docs/en/hooks.md (October 2026).
@@ -99,6 +100,14 @@ def parse(data):
     return "", ""
 
 
+def asker(data):
+    # Subagent events carry an agent_id; the main agent's do not. A
+    # Notification never carries one, whoever it is about.
+    if event_name(data) == "Notification":
+        return ""
+    return str(data.get("agent_id") or "main")
+
+
 def main():
     data = payload()
     state, subagent_event = parse(data)
@@ -106,6 +115,7 @@ def main():
         print(state)
         print(subagent_event)
         print(str(data.get("transcript_path", "")))
+        print(asker(data))
 
 
 if __name__ == "__main__":

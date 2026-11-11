@@ -48,8 +48,9 @@ Badge text is your rename if you gave one, otherwise the harness
 ## Requirements
 
 - tmux ≥ 3.2 (pane user options, format pane loops, clickable status
-  ranges); developed and tested on 3.7b. Vertical mode needs tmux 3.9 or
-  a build of tmux master — see [Vertical mode](#vertical-mode).
+  ranges); developed and tested on 3.7b and on tmux master. Vertical mode
+  needs tmux 3.9 or a build of tmux master — see
+  [Vertical mode](#vertical-mode).
 - bash and python3, for the hook scripts.
 - Claude Code is the only harness wired up today — see
   [Other agents](#other-agents) for adding more.
@@ -69,8 +70,12 @@ set -g @plugin 'dewyze/tmux-agent-bar'
 
 Or manually, from a clone:
 
+```sh
+git clone https://github.com/dewyze/tmux-agent-bar ~/.tmux/plugins/tmux-agent-bar
+```
+
 ```tmux
-run-shell ~/dev/tmux-agent-bar/agent-bar.tmux
+run-shell ~/.tmux/plugins/tmux-agent-bar/agent-bar.tmux
 ```
 
 ### 2. The hooks
@@ -108,6 +113,18 @@ That's it: start an agent in any pane and its badge appears.
   you already run 3+ status lines your `status` value is kept, but line
   index 1 is still taken by the bar.
 
+## Uninstall
+
+1. Hooks: `/plugin uninstall tmux-agent-bar@tmux-agent-bar` in Claude
+   Code. If you used `install-claude-hooks.sh`, delete the entries that
+   run `hooks/claude.sh` from `~/.claude/settings.json` (the script left
+   backups next to it).
+2. Bar: remove the `@plugin` or `run-shell` line and any `@agent_bar_*`
+   options from tmux.conf, then restart the tmux server
+   (`tmux kill-server`). The plugin's status line, mouse bindings and
+   hooks live in the running server, so they last until it exits. Agent
+   state is stored on panes and goes with them.
+
 ## Vertical mode
 
 Same install; one option:
@@ -132,7 +149,14 @@ set -g side-status-style "bg=colour236,fg=colour254"
 
 It requires tmux with the `side-status` feature
 ([tmux/tmux#5468](https://github.com/tmux/tmux/pull/5468)). It is on tmux
-master and ships in tmux 3.9; until 3.9 is released, build master:
+master and ships in tmux 3.9; until 3.9 is released, build master. With
+Homebrew:
+
+```sh
+brew uninstall tmux && brew install --HEAD tmux
+```
+
+Or from source:
 
 ```sh
 git clone https://github.com/tmux/tmux.git && cd tmux
@@ -141,6 +165,10 @@ sh autogen.sh && ./configure && make
 
 On macOS, `./configure` requires jemalloc: `brew install jemalloc`, or
 pass `--disable-jemalloc`.
+
+A running tmux server keeps the old version until it exits: check with
+`tmux display -p '#{version}'`, and run `tmux kill-server` (it closes
+every session) to start on the new one.
 
 The option is safe in dotfiles shared across machines: the plugin probes
 for `side-status` at load and falls back to the horizontal bar on stock
@@ -242,6 +270,7 @@ Claude Code hook event (JSON on stdin)
   → status-format[1] or side-status-format    S/W/P loops render badges
     (lib/bar-format.sh)
   → MouseDown1Status / MouseDown3Status       switch-client / menu
+    (MouseDown1SideStatus / MouseDown3SideStatus in vertical mode)
 ```
 
 States: `running`, `subagent-running` (refcounted, with a reset guard so
@@ -258,9 +287,10 @@ any script can join the bar with one `set-option` per SCHEMA.md. PRs
 welcome for other harnesses (codex, cursor, opencode, ...); a full
 integration is two files:
 
-1. `lib/parse-<app>.py` — pure: payload on stdin → three lines
-   on stdout: state, subagent event (`start`/`stop`/`soft`/empty),
-   transcript path (or empty). Unknown events print nothing.
+1. `lib/parse-<app>.py` — pure: payload on stdin → up to four
+   lines on stdout: state, subagent event (`start`/`stop`/`soft`/empty),
+   transcript path (or empty), and optionally who the event is from (a
+   subagent's id, or `main`). Unknown events print nothing.
 2. `hooks/<app>.sh` — four lines:
 
    ```sh
