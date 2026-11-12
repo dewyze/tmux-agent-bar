@@ -22,6 +22,7 @@ every consumer reading via formats.
 | `@agent_subagents` | no | live subagent refcount (see state machine) |
 | `@agent_transcript` | no | absolute path to the producer's transcript/log, if it keeps one |
 | `@agent_asker` | no | who a `needs-input` is waiting on: `main` or a subagent's id. While set, a producer's tool and subagent events from any other agent leave `needs-input` up |
+| `@agent_session` | no | the producer's id for the session on the pane. A producer whose exit event can arrive late unsets the pane only when the ids match |
 | `@agent_writer_version` | no | producer's own version, for install-skew diagnosis |
 | `@agent_name` | no | **user-owned**: a stable human-assigned name for the pane's agent. Producers must never write or unset it; it survives agent restarts and dies with the pane |
 

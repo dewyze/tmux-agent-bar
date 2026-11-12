@@ -52,13 +52,13 @@ Badge text is your rename if you gave one, otherwise the harness
   needs tmux 3.9 or a build of tmux master — see
   [Vertical mode](#vertical-mode).
 - bash and python3, for the hook scripts.
-- Claude Code is the only harness wired up today — see
+- Claude Code and Codex CLI are wired up today — see
   [Other agents](#other-agents) for adding more.
 
 ## Setup
 
-Two pieces: the **bar** (a tmux plugin) and the **hooks** (Claude Code
-side). Vertical and horizontal modes install identically.
+Two pieces: the **bar** (a tmux plugin) and the **hooks** (on the agent's
+side: Claude Code, Codex, or both). Vertical and horizontal modes install identically.
 
 ### 1. The bar
 
@@ -78,7 +78,7 @@ git clone https://github.com/dewyze/tmux-agent-bar ~/.tmux/plugins/tmux-agent-ba
 run-shell ~/.tmux/plugins/tmux-agent-bar/agent-bar.tmux
 ```
 
-### 2. The hooks
+### 2. The hooks: Claude Code
 
 Preferred: install as a Claude Code plugin (clean install *and*
 uninstall, no settings surgery):
@@ -99,6 +99,20 @@ Use one path or the other, not both, or every event fires the hook twice
 (both register the same events; a test enforces it). Hooks load at Claude
 session start — restart sessions (or `/reload-plugins`) after installing.
 
+### 3. The hooks: Codex
+
+```sh
+./scripts/install-codex-hooks.sh
+```
+
+It adds `hooks/codex.sh` to `~/.codex/hooks.json` (idempotent, with rotated
+backups, other hooks kept). Codex skips new hooks until you approve them:
+run `/hooks` inside Codex, then restart it.
+
+Two things differ from Claude Code, both Codex's doing: a badge first
+appears at a session's first prompt, not when Codex starts, and it stays
+for up to a minute after Codex quits.
+
 That's it: start an agent in any pane and its badge appears.
 
 ### Upgrade notes
@@ -118,7 +132,8 @@ That's it: start an agent in any pane and its badge appears.
 1. Hooks: `/plugin uninstall tmux-agent-bar@tmux-agent-bar` in Claude
    Code. If you used `install-claude-hooks.sh`, delete the entries that
    run `hooks/claude.sh` from `~/.claude/settings.json` (the script left
-   backups next to it).
+   backups next to it). For Codex, delete the entries that run
+   `hooks/codex.sh` from `~/.codex/hooks.json`.
 2. Bar: remove the `@plugin` or `run-shell` line and any `@agent_bar_*`
    options from tmux.conf, then restart the tmux server
    (`tmux kill-server`). The plugin's status line, mouse bindings and
@@ -282,15 +297,16 @@ pane, so cleanup is automatic. The full producer/consumer contract is
 
 ### Other agents
 
-Only Claude Code is wired up today, but nothing else is Claude-specific —
-any script can join the bar with one `set-option` per SCHEMA.md. PRs
+Claude Code and Codex CLI are wired up today, each as the two files below
+— any script can join the bar with one `set-option` per SCHEMA.md. PRs
 welcome for other harnesses (codex, cursor, opencode, ...); a full
 integration is two files:
 
-1. `lib/parse-<app>.py` — pure: payload on stdin → up to four
+1. `lib/parse-<app>.py` — pure: payload on stdin → up to five
    lines on stdout: state, subagent event (`start`/`stop`/`soft`/empty),
-   transcript path (or empty), and optionally who the event is from (a
-   subagent's id, or `main`). Unknown events print nothing.
+   transcript path (or empty), then optionally who the event is from (a
+   subagent's id, or `main`) and the session id. Unknown events print
+   nothing. `lib/parse-codex.py` is a short real one.
 2. `hooks/<app>.sh` — four lines:
 
    ```sh
@@ -342,7 +358,7 @@ Ranked by expected daily leverage:
    first persistent `#()` helper.
 5. **Hookless agent detection** — panes running `claude`/`codex` without
    hooks installed still get a dim badge via command-name heuristics.
-6. **More agents** — codex, cursor, kiro, opencode, pi via the pane-option
+6. **More agents** — cursor, kiro, opencode, pi via the pane-option
    contract.
 7. **Colours and icons** — per-state colours, more nerd-font themes.
 8. **Upstream: `PermissionResolved` hook event in Claude Code** — denials

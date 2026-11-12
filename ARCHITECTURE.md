@@ -65,18 +65,18 @@ Layered; each layer knows only the one below it.
 | Layer | Files | Responsibility | May touch tmux? |
 |---|---|---|---|
 | **Contract** | `SCHEMA.md` (versioned: `@agent_schema 1`) | `@agent_*` names, state vocabulary, producer/consumer rules | — |
-| **Parsers** (pure) | `lib/parse-claude.py` | harness payload → `(state, subagent_event, transcript)`; one file per harness, no side effects, no tmux | never |
-| **Writer** | `hooks/claude.sh`, `lib/hook-lib.sh` | stdin/argv plumbing, pane identity (`TMUX_PANE`), subagent refcount state machine, batched option writes, trace | writes options |
+| **Parsers** (pure) | `lib/parse-claude.py`, `lib/parse-codex.py` | harness payload → `(state, subagent_event, transcript, asker, session)`; one file per harness, no side effects, no tmux | never |
+| **Writer** | `hooks/claude.sh`, `hooks/codex.sh`, `lib/hook-lib.sh` | stdin/argv plumbing, pane identity (`TMUX_PANE`), subagent refcount state machine, batched option writes, trace | writes options |
 | **Store** | tmux server (pane user options) | the entire runtime state | is tmux |
 | **View** (pure) | `lib/bar-format.sh` | emits the format string; glyphs, styles, ranges, label rules | reads `@agent_bar_*` options at load (string out) |
 | **Verifiers** | `scripts/verify-needs-input.sh`, `lib/transcript-progressed.py` | reconcile stored state against external truth (transcript) | reads + one write |
 | **Interactions** | mouse bindings (installed by `agent-bar.tmux`) | a click jumps (`switch-client`) or opens the agent menu (`display-menu`), inside tmux with no process; guards validate the clicked range first | commands |
 | **Composition root** | `agent-bar.tmux` | wires view into `status-format[1]` or `side-status-format`, binds mouse + navigation hooks; the only file that installs anything | config |
-| **Distribution** | `.claude-plugin/` + `hooks/hooks.json` (packaged path, primary), `scripts/install-claude-hooks.sh` (settings fallback) | register the writer with the harness; both paths must declare identical events (drift-guarded by test). The packaged writer runs from Claude's copy of the repo, so it stamps `@agent_writer_version` (from `VERSION`) to make copy/checkout skew observable; `scripts/reset.sh` restores a clean state | — |
+| **Distribution** | `.claude-plugin/` + `hooks/hooks.json` (packaged path, primary), `scripts/install-claude-hooks.sh` (settings fallback), `scripts/install-codex-hooks.sh` | register the writer with the harness; both paths must declare identical events (drift-guarded by test). The packaged writer runs from Claude's copy of the repo, so it stamps `@agent_writer_version` (from `VERSION`) to make copy/checkout skew observable; `scripts/reset.sh` restores a clean state | — |
 
 Rules that keep the layering honest:
 
-1. Parsers are pure functions with a 4-line stdout protocol; adding a
+1. Parsers are pure functions with a line protocol on stdout; adding a
    harness means adding `lib/parse-<app>.py` plus a 4-line `hooks/<app>.sh`
    delegating to `run_agent_hook` — schema stamping, the state machine,
    exit-unsets, and tracing come free. `tests/hooks/new_harness_test.sh`
