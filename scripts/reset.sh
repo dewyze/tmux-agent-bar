@@ -2,7 +2,8 @@
 # Return the tmux server to a clean state matching this checkout: clear every
 # @agent_* pane option and reapply the bar, bindings, and hooks. Use after
 # updating the checkout or whenever state looks wrong. Does not touch the
-# Claude Code side — update the installed plugin copy with:
+# Claude Code side. Hooks installed as a Claude Code plugin run from its own
+# copy of this repo; update that with:
 #   claude plugin update tmux-agent-bar
 set -u
 
@@ -21,4 +22,4 @@ bash "$ROOT_DIR/agent-bar.tmux"
 
 printf 'reset: cleared agent state on all panes, reapplied bar (checkout version %s)\n' \
   "$(cat "$ROOT_DIR/VERSION" 2>/dev/null || printf unknown)"
-printf 'reminder: hooks run from the installed plugin copy; sync it with `claude plugin update tmux-agent-bar` and restart agent sessions\n'
+printf 'reminder: hooks installed as a Claude Code plugin run from its own copy; sync it with `claude plugin update tmux-agent-bar` and restart agent sessions. Hooks installed in settings.json already run this checkout.\n'

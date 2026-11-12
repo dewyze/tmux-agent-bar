@@ -344,7 +344,7 @@ Ranked by expected daily leverage:
    hooks installed still get a dim badge via command-name heuristics.
 6. **More agents** — codex, cursor, kiro, opencode, pi via the pane-option
    contract.
-7. **Colors/icons pass** — current palette is placeholder; nerd-font themes.
+7. **Colours and icons** — per-state colours, more nerd-font themes.
 8. **Upstream: `PermissionResolved` hook event in Claude Code** — denials
    emit no event today; this would delete `verify-needs-input.sh`.
 9. **Vertical status line in a tmux release** —
