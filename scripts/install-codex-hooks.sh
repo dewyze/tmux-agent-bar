@@ -30,33 +30,46 @@ import os
 hooks_path = os.environ["HOOKS"]
 hook_command = os.environ["HOOK_COMMAND"]
 
-# Every event lib/parse-codex.py maps (a test keeps the two in step).
-EVENTS = [
-    "SessionStart",
-    "SessionEnd",
-    "UserPromptSubmit",
-    "PostToolUse",
-    "PermissionRequest",
-    "Interrupt",
-    "PostCompact",
-    "SubagentStart",
-    "SubagentStop",
-    "Stop",
-]
+# Every event lib/parse-codex.py maps (a test keeps the two in step), and
+# whether Codex may run the hook without waiting for it. SessionStart fires
+# together with the first prompt: it stays synchronous so its idle cannot
+# land after the prompt's running.
+EVENTS = {
+    "SessionStart": False,
+    "SessionEnd": True,
+    "UserPromptSubmit": True,
+    "PostToolUse": True,
+    "PermissionRequest": True,
+    "Interrupt": True,
+    "PostCompact": True,
+    "SubagentStart": True,
+    "SubagentStop": True,
+    "Stop": True,
+}
 
 with open(hooks_path) as f:
     data = json.load(f)
 
 hooks = data.setdefault("hooks", {})
-for event in EVENTS:
+for event, run_async in EVENTS.items():
     rules = hooks.setdefault(event, [])
-    registered = any(
-        entry.get("command") == hook_command
-        for rule in rules
-        for entry in rule.get("hooks", [])
+    entry = next(
+        (
+            entry
+            for rule in rules
+            for entry in rule.get("hooks", [])
+            if entry.get("command") == hook_command
+        ),
+        None,
     )
-    if not registered:
-        rules.append({"hooks": [{"type": "command", "command": hook_command}]})
+    if entry is None:
+        entry = {"type": "command", "command": hook_command}
+        rules.append({"hooks": [entry]})
+    # Codex lists a hook under its statusMessage, and without a timeout
+    # waits up to 600s for it.
+    entry["statusMessage"] = "tmux-agent-bar"
+    entry["timeout"] = 10
+    entry["async"] = run_async
 
 with open(hooks_path, "w") as f:
     json.dump(data, f, indent=2)

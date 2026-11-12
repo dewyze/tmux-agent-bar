@@ -26,6 +26,31 @@ json "
 hook = data['hooks']['Stop'][0]['hooks'][0]
 assert hook['type'] == 'command', hook
 assert hook['command'].endswith('hooks/codex.sh'), hook
+# Codex lists a hook under its statusMessage ("Unnamed hook" without one),
+# waits for sync hooks, and gives them 600s by default.
+assert hook['statusMessage'] == 'tmux-agent-bar', hook
+assert hook['async'] is True, hook
+assert hook['timeout'] == 10, hook
+# SessionStart fires together with the first prompt: it stays synchronous
+# so its idle cannot land after the prompt's running.
+assert data['hooks']['SessionStart'][0]['hooks'][0]['async'] is False, 'SessionStart must be sync'
+"
+
+# An entry from an earlier install gains the fields in place
+python3 - "$HOOKS" <<'OLD'
+import json, sys
+path = sys.argv[1]
+data = json.load(open(path))
+entry = data["hooks"]["Stop"][0]["hooks"][0]
+for key in ("statusMessage", "async", "timeout"):
+    del entry[key]
+json.dump(data, open(path, "w"), indent=2)
+OLD
+install
+json "
+hook = data['hooks']['Stop'][0]['hooks'][0]
+assert hook['statusMessage'] == 'tmux-agent-bar' and hook['async'] is True and hook['timeout'] == 10, hook
+assert len(data['hooks']['Stop']) == 1, data['hooks']['Stop']
 "
 count="$(echo "$mapped" | wc -l | tr -d ' ')"
 
