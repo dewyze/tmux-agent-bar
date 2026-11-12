@@ -50,10 +50,11 @@ resolve_agent_state() {
 # The generic harness writer: everything after parsing is identical for
 # every agent. A new harness integration is exactly two files:
 #   lib/parse-<app>.py  — pure: payload on stdin (+ optional event
-#                         argv) -> 4-line protocol on stdout:
+#                         argv) -> line protocol on stdout:
 #                         state, subagent event (start/stop/soft),
-#                         transcript, who the event is from (an agent id,
-#                         "main", or blank; the line is optional)
+#                         transcript, then two optional lines: who the
+#                         event is from (an agent id, "main", or blank)
+#                         and the session id
 #   hooks/<app>.sh      — four lines: source this file, run_agent_hook <app>
 # Schema stamping, the subagent state machine, exit-unsets, tracing, and
 # batched writes all come from here (see SCHEMA.md for the contract).
@@ -70,14 +71,16 @@ run_agent_hook() {
 
   resolve_hook_input "$@"
 
-  local result state subagent_event transcript asker
+  local result state subagent_event transcript asker session
   # On stdin, not in the environment: exec caps an environment variable
   # (1MB on macOS, 128KB on Linux) and a big payload would be dropped.
   result="$(python3 "$lib_dir/parse-$app.py" "$HOOK_EVENT_ARG" <<<"$HOOK_PAYLOAD")" || return 0
-  { IFS= read -r state; IFS= read -r subagent_event; IFS= read -r transcript; IFS= read -r asker; } <<<"$result"
-  # The asker goes into a tmux format below: anything but a plain id is
-  # dropped, which falls back to not telling agents apart.
+  { IFS= read -r state; IFS= read -r subagent_event; IFS= read -r transcript; IFS= read -r asker; IFS= read -r session; } <<<"$result"
+  # The asker and the session go into tmux formats below: anything but a
+  # plain id is dropped, which falls back to not telling agents (or
+  # sessions) apart.
   [[ "$asker" =~ ^[A-Za-z0-9_-]+$ ]] || asker=""
+  [[ "$session" =~ ^[A-Za-z0-9_-]+$ ]] || session=""
 
   # Opt-in diagnostics: `tmux set -g @agent_bar_trace /path/to/log` records
   # every event (including no-ops) with its parse result.
@@ -95,14 +98,19 @@ run_agent_hook() {
   [[ "$pane" =~ ^%[0-9]+$ ]] || return 0
 
   if [ "$state" = "exit" ]; then
-    tmux set-option -pu -t "$pane" @agent_app \; \
-      set-option -pu -t "$pane" @agent_state \; \
-      set-option -pu -t "$pane" @agent_subagents \; \
-      set-option -pu -t "$pane" @agent_updated \; \
-      set-option -pu -t "$pane" @agent_transcript \; \
-      set-option -pu -t "$pane" @agent_asker \; \
-      set-option -pu -t "$pane" @agent_writer_version \; \
-      set-option -pu -t "$pane" @agent_schema 2>/dev/null
+    # An exit that names a session only counts for the session on the
+    # pane: a harness can report an end late, after another session has
+    # started there. tmux compares as it unsets.
+    local option unset="" mine=1
+    for option in @agent_app @agent_state @agent_subagents @agent_updated \
+      @agent_transcript @agent_asker @agent_session @agent_writer_version \
+      @agent_schema; do
+      unset="$unset${unset:+ ; }set-option -pu -t $pane $option"
+    done
+    if [ -n "$session" ]; then
+      mine="#{?#{@agent_session},#{==:#{@agent_session},$session},1}"
+    fi
+    tmux if-shell -F -t "$pane" "$mine" "$unset" 2>/dev/null
     return 0
   fi
 
@@ -153,6 +161,9 @@ run_agent_hook() {
     \; set-option -p -t "$pane" @agent_schema 1)
   if [ "$count" != "-" ]; then
     write+=(\; set-option -p -t "$pane" @agent_subagents "$count")
+  fi
+  if [ -n "$session" ]; then
+    write+=(\; set-option -p -t "$pane" @agent_session "$session")
   fi
   if [ -n "$transcript" ]; then
     write+=(\; set-option -p -t "$pane" @agent_transcript "$transcript")
