@@ -11,6 +11,7 @@ for script in \
   "$ROOT_DIR/scripts/verify-needs-input.sh" \
   "$ROOT_DIR/scripts/reset.sh" \
   "$ROOT_DIR/scripts/adopt-theme.sh" \
-  "$ROOT_DIR/scripts/install-claude-hooks.sh"; do
+  "$ROOT_DIR/scripts/install-claude-hooks.sh" \
+  "$ROOT_DIR/scripts/install-codex-hooks.sh"; do
   [ -x "$script" ] || fail "not executable: $script"
 done
