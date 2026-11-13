@@ -83,3 +83,10 @@ assert_eq "3" "${#backups[@]}" "three backups kept"
 case "${backups[*]}" in
   *20261112-120000*) fail "oldest backup not pruned: ${backups[*]}" ;;
 esac
+
+# The installer says what Codex needs before badges appear: approval, and
+# no shared background server.
+output="$(TIMESTAMP=20261112-120009 bash "$ROOT_DIR/scripts/install-codex-hooks.sh")"
+assert_contains "$output" "/hooks" "approval reminder"
+assert_contains "$output" "daemon_auto_start = false" "background server reminder"
+assert_contains "$output" "--no-daemon" "per-launch alternative"

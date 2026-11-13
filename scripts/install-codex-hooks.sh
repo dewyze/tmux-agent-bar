@@ -2,7 +2,8 @@
 # Register hooks/codex.sh for every lifecycle event in Codex's hooks.json.
 # Idempotent; backs up the file first (3 backups kept). Never auto-run —
 # invoke explicitly. Codex skips new hooks until they are approved: run
-# /hooks inside Codex afterwards.
+# /hooks inside Codex afterwards. Badges also need Codex to run without its
+# shared background server (see hooks/codex.sh).
 set -euo pipefail
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
@@ -78,3 +79,10 @@ PY
 
 printf 'Registered %s in %s\n' "$HOOK_COMMAND" "$HOOKS"
 printf 'Codex skips new hooks until you approve them: run /hooks inside Codex.\n'
+cat <<'NOTE'
+Badges need Codex to run without its shared background server, which hides
+the pane from hooks (openai/codex#48500). Either add to ~/.codex/config.toml:
+  [features]
+  daemon_auto_start = false
+or start Codex with: codex --no-daemon
+NOTE

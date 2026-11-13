@@ -109,7 +109,21 @@ It adds `hooks/codex.sh` to `~/.codex/hooks.json` (idempotent, with rotated
 backups, other hooks kept). Codex skips new hooks until you approve them:
 run `/hooks` inside Codex, then restart it.
 
-Two things differ from Claude Code, both Codex's doing: a badge first
+Codex must also run without its shared background server. Add this to
+`~/.codex/config.toml`:
+
+```toml
+[features]
+daemon_auto_start = false
+```
+
+or start it with `codex --no-daemon`. With the server on (Codex's
+default) there are no Codex badges: the server runs every session's hooks
+itself and they can't tell which pane they belong to
+([openai/codex#48500](https://github.com/openai/codex/issues/48500)). The
+hook writes nothing in that case, so no pane is mislabelled.
+
+Two more things differ from Claude Code, both Codex's doing: a badge first
 appears at a session's first prompt, not when Codex starts, and it stays
 for up to a minute after Codex quits.
 

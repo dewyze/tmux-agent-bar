@@ -66,7 +66,7 @@ Layered; each layer knows only the one below it.
 |---|---|---|---|
 | **Contract** | `SCHEMA.md` (versioned: `@agent_schema 1`) | `@agent_*` names, state vocabulary, producer/consumer rules | — |
 | **Parsers** (pure) | `lib/parse-claude.py`, `lib/parse-codex.py` | harness payload → `(state, subagent_event, transcript, asker, session)`; one file per harness, no side effects, no tmux | never |
-| **Writer** | `hooks/claude.sh`, `hooks/codex.sh`, `lib/hook-lib.sh` | stdin/argv plumbing, pane identity (`TMUX_PANE`), subagent refcount state machine, batched option writes, trace | writes options |
+| **Writer** | `hooks/claude.sh`, `hooks/codex.sh`, `lib/hook-lib.sh` | stdin/argv plumbing, pane identity (`TMUX_PANE`; the Codex wrapper writes nothing when Codex's background server runs it, since the pane is then unknown), subagent refcount state machine, batched option writes, trace | writes options |
 | **Store** | tmux server (pane user options) | the entire runtime state | is tmux |
 | **View** (pure) | `lib/bar-format.sh` | emits the format string; glyphs, styles, ranges, label rules | reads `@agent_bar_*` options at load (string out) |
 | **Verifiers** | `scripts/verify-needs-input.sh`, `lib/transcript-progressed.py` | reconcile stored state against external truth (transcript) | reads + one write |

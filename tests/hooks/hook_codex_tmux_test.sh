@@ -19,14 +19,26 @@ chmod +x "$TEST_TMP/bin/tmux"
 export PATH="$TEST_TMP/bin:$PATH"
 unset TMUX
 
-tmux_t new-session -d -x 80 -y 24
+# Codex runs a hook as a child of its own process in the pane, so the hook's
+# parent is on the pane's terminal. Here the pane runs a loop that plays
+# that part: each line on `go` runs the hook on `payload`.
+mkfifo "$TEST_TMP/go" "$TEST_TMP/done"
+exec 3<>"$TEST_TMP/go" 4<>"$TEST_TMP/done"
+cat > "$TEST_TMP/loop.sh" <<LOOP
+while IFS= read -r _ < "$TEST_TMP/go"; do
+  bash "$ROOT_DIR/hooks/codex.sh" < "$TEST_TMP/payload"
+  echo > "$TEST_TMP/done"
+done
+LOOP
+tmux_t new-session -d -x 80 -y 24 "sh $TEST_TMP/loop.sh"
 pane="$(tmux_t display-message -p '#{pane_id}')"
-export TMUX_PANE="$pane"
 
 # Events of session s1 unless $2 names another.
 run_hook() {
-  printf '{"hook_event_name":"%s","session_id":"%s"%s}' "$1" "${2:-s1}" "${3:-}" |
-    bash "$ROOT_DIR/hooks/codex.sh"
+  printf '{"hook_event_name":"%s","session_id":"%s"%s}' "$1" "${2:-s1}" "${3:-}" \
+    > "$TEST_TMP/payload"
+  echo >&3
+  IFS= read -r -t 5 _ <&4 || fail "the hook did not run in the pane"
 }
 option() { tmux_t show-options -pv -t "$pane" "$1" 2>/dev/null; }
 
@@ -77,3 +89,13 @@ run_hook SessionEnd s2
 for opt in @agent_state @agent_app @agent_session @agent_subagents @agent_updated @agent_schema; do
   assert_eq "" "$(option "$opt")" "$opt unset on exit"
 done
+
+# Codex's shared background server runs every session's hooks with the
+# environment of the pane that first started it, so TMUX_PANE can name any
+# pane. Such a hook's parent has no terminal: it writes nothing.
+printf '{"hook_event_name":"UserPromptSubmit","session_id":"s3"}' |
+  TMUX_PANE="$pane" python3 -c '
+import os, subprocess, sys
+os.setsid()
+subprocess.run(sys.argv[1:])' bash "$ROOT_DIR/hooks/codex.sh"
+assert_eq "" "$(option @agent_state)" "a hook run by the background server writes nothing"
