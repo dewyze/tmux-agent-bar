@@ -146,8 +146,9 @@ It clears all badges and reloads the bar. Restart your agents after that.
 
 ## The bar
 
-The bar lists every session and its windows. Agents sit under the window
-they run in.
+The bar lists the windows that have an agent in them, with each agent
+under its window. Agents in other sessions are grouped under the session's
+name. With no agents running it just says "no agents".
 
 | Badge | Meaning |
 |---|---|
@@ -233,6 +234,7 @@ directory.
 |---|---|---|
 | `@agent_bar_position` | `left` | Side of the screen: `left` or `right`. `status` is the bottom bar. |
 | `@agent_bar_width` | `24` | Width of the side bar, in columns. |
+| `@agent_bar_windows` | `agents` | `all` lists every window and session, with or without agents. |
 | `@agent_bar_cross_session` | `inline` | `off` shows only the session you are in. |
 
 ### Badges and names

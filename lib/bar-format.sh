@@ -139,10 +139,11 @@ if [ "$position" != "status" ]; then
   # Hierarchy indent: local windows sit flat (no header above them), their
   # panes at 2 spaces; foreign windows indent 2 under their session header,
   # their panes 4.
-  # The tree is unconditional: every window (and every foreign session
-  # header) gets a row, so the bar is a navigation surface even with zero
-  # agents and nothing reflows when the first one appears. Only the pane
-  # badge rows are gated on agent state.
+  # @agent_bar_windows agents (the default) lists only windows with an
+  # agent, and only foreign sessions with one; when there is none the bar
+  # says so, or it would look switched off. `all` lists every window and
+  # session, a navigation surface that never reflows. Either way only
+  # agent panes get badge rows.
   # Overflow: the whole tree is a tmux list (list=on) with "more above" and
   # "more below" marker rows, upstream's ACS arrows. The current window's
   # label row is the list focus, so when the tree is taller than the bar
@@ -152,14 +153,29 @@ if [ "$position" != "status" ]; then
   v_focus='#{?window_active,#[list=focus],}'
   v_badge() { printf '#{?#{@agent_state},%s#[range=user|#{pane_id}]%s%s#[default]#[norange]#[nl],}' "$1" "${state_mark}" "${name_suffix}"; }
   v_window() { printf '%s%s%s#[range=user|#{window_id}]#{window_name}%s#[norange]#[default]#[list=on]#[nl]#{P:%s}' "$1" "$3" "${wstyle}" "${label_suffix}" "$(v_badge "$2")"; }
-  v_windows_local="#{W:$(v_window '' '  ' "$v_focus")}"
-  v_windows_foreign="#{W:$(v_window '  ' '    ' '')}"
+  v_local_row="$(v_window '' '  ' "$v_focus")"
+  v_foreign_row="$(v_window '  ' '    ' '')"
   v_header="#[fg=${accent} bold]${session_marker}#[default]#[fg=${accent}]#[range=user|#{session_id}]#{session_name}#[norange]#[default]#[nl]"
-  v_foreign="${v_header}${v_windows_foreign}"
-  if [ "$mode" = "off" ]; then
-    printf '%s#{S:#{?%s,%s,}}' "$v_list" "$is_local" "$v_windows_local"
+  v_empty=""
+  if [ "$(bar_option windows agents)" = "all" ]; then
+    v_foreign="${v_header}#{W:${v_foreign_row}}"
   else
-    printf '%s#{S:#{?%s,%s,%s}}' "$v_list" "$is_local" "$v_windows_local" "$v_foreign"
+    window_has_agents='#{P:#{?#{@agent_state},x,}}'
+    v_local_row="#{?${window_has_agents},${v_local_row},}"
+    v_foreign="#{?${session_has_agents},${v_header}#{W:#{?${window_has_agents},${v_foreign_row},}},}"
+    # The note looks where the bar looks: this session, or every session.
+    if [ "$mode" = "off" ]; then
+      any_agents="$session_has_agents"
+    else
+      any_agents="#{S:${session_has_agents}}"
+    fi
+    v_empty="#{?${any_agents},,#[fg=colour243]no agents#[default]#[nl]}"
+  fi
+  v_windows_local="#{W:${v_local_row}}"
+  if [ "$mode" = "off" ]; then
+    printf '%s%s#{S:#{?%s,%s,}}' "$v_list" "$v_empty" "$is_local" "$v_windows_local"
+  else
+    printf '%s%s#{S:#{?%s,%s,%s}}' "$v_list" "$v_empty" "$is_local" "$v_windows_local" "$v_foreign"
   fi
   exit 0
 fi

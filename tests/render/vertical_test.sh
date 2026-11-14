@@ -67,22 +67,34 @@ case "$out" in
 esac
 assert_contains "$out" "#[nl]    #[range=user|$foreign_pane]" "foreign pane 4-space indent"
 
-# The tree is always present: windows without agents still get label rows
-# (the bar is a navigation surface with zero agents), but only agent panes
-# get badge rows
+# Only windows with an agent get a row, and only sessions with one get a
+# header
 tmux_t new-window -t work -n extra
 extra_pane="$(tmux_t list-panes -t work:extra -F '#{pane_id}')"
-tree_fmt="$(bash "$ROOT_DIR/lib/bar-format.sh")"
-tree_out="$(tmux_t display-message -p -c "$client" "$tree_fmt")"
-tree_shown="$(printf '%s' "$tree_out" | sed 's/#\[[^]]*\]//g')"
-assert_contains "$tree_shown" "extra" "agent-less window still gets a row"
-assert_not_contains "$tree_out" "#[range=user|$extra_pane]" "agent-less pane gets no badge row"
-
-# Zero agents anywhere: the full tree still renders
+render() { tmux_t display-message -p -c "$client" "$(bash "$ROOT_DIR/lib/bar-format.sh")"; }
+plain() { render | sed 's/#\[[^]]*\]//g'; }
+assert_not_contains "$(plain)" "extra" "agent-less window gets no row"
+assert_contains "$(plain)" "api" "window with an agent keeps its row"
+assert_not_contains "$(plain)" "no agents" "no empty note while agents exist"
 tmux_t set-option -pu -t "$foreign_pane" @agent_state
-empty_out="$(tmux_t display-message -p -c "$client" "$(bash "$ROOT_DIR/lib/bar-format.sh")" | sed 's/#\[[^]]*\]//g')"
-assert_contains "$empty_out" "blog" "agent-less session header still renders"
-assert_contains "$empty_out" "web" "agent-less foreign window still renders"
+assert_not_contains "$(plain)" "blog" "agent-less session gets no header"
+assert_not_contains "$(plain)" "web" "agent-less foreign window gets no row"
+
+# No agents anywhere: the bar says so, so it does not look switched off
+tmux_t set-option -pu -t "$local_pane" @agent_state
+assert_contains "$(plain)" "no agents" "empty note"
+assert_not_contains "$(plain)" "api" "no window rows"
+
+# @agent_bar_windows all: the whole tree, agents or not, and no empty note
+tmux_t set-option -g @agent_bar_windows all
+assert_contains "$(plain)" "api" "all: agent-less window gets a row"
+assert_contains "$(plain)" "extra" "all: every window"
+assert_contains "$(plain)" "blog" "all: agent-less session header"
+assert_contains "$(plain)" "web" "all: agent-less foreign window"
+assert_not_contains "$(plain)" "no agents" "all: no empty note"
+assert_not_contains "$(render)" "#[range=user|$extra_pane]" "all: agent-less pane gets no badge row"
+tmux_t set-option -gu @agent_bar_windows
+tmux_t set-option -p -t "$local_pane" @agent_state running
 tmux_t set-option -p -t "$foreign_pane" @agent_state needs-input
 tmux_t kill-window -t work:extra
 
@@ -91,5 +103,10 @@ tmux_t set-option -g @agent_bar_cross_session off
 off_fmt="$(bash "$ROOT_DIR/lib/bar-format.sh")"
 off_shown="$(tmux_t display-message -p -c "$client" "$off_fmt" | sed 's/#\[[^]]*\]//g')"
 assert_not_contains "$off_shown" "blog" "off hides foreign vertically"
+# ... and the empty note then looks at this session only
+tmux_t set-option -pu -t "$local_pane" @agent_state
+off_empty="$(tmux_t display-message -p -c "$client" "$(bash "$ROOT_DIR/lib/bar-format.sh")" | sed 's/#\[[^]]*\]//g')"
+assert_contains "$off_empty" "no agents" "off: empty note ignores other sessions"
+tmux_t set-option -p -t "$local_pane" @agent_state running
 tmux_t set-option -gu @agent_bar_cross_session
 tmux_t set-option -gu @agent_bar_position

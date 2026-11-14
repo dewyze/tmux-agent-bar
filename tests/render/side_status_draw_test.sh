@@ -32,7 +32,8 @@ fi
 pane="$(tmux_i list-panes -t work:api -F '#{pane_id}')"
 tmux_i set-option -p -t "$pane" @agent_state running \; \
   set-option -p -t "$pane" @agent_app claude \; \
-  set-option -g @agent_bar_position left
+  set-option -g @agent_bar_position left \; \
+  set-option -g @agent_bar_windows all
 PATH="$TEST_TMP/bin:$PATH" bash "$ROOT_DIR/agent-bar.tmux"
 
 tmux_o new-session -d -x 80 -y 12 "$REAL_TMUX -L '$INNER' -f /dev/null attach -t work"
@@ -58,6 +59,7 @@ assert_row() {
   esac
 }
 
+# @agent_bar_windows all, so every kind of row is drawn.
 # Tree rows down the left edge: the local session's windows, the agent
 # badge under its window, then the foreign session's header and windows.
 # The edge line sits in column 25: @agent_bar_width 24, plus one.
@@ -89,3 +91,19 @@ tmux_i new-session -d -s zed -n zz
 tmux_i switch-client -c "$(tmux_i list-clients -F '#{client_name}')" -t zed
 wait_for " ▌ work"
 grep -q '^zz ' <<<"$captured" || fail "viewing session's window not visible: $captured"
+
+# The default lists only windows with an agent; with none, the bar says so
+tmux_i switch-client -c "$(tmux_i list-clients -F '#{client_name}')" -t work
+tmux_i set-option -gu @agent_bar_windows
+PATH="$TEST_TMP/bin:$PATH" bash "$ROOT_DIR/agent-bar.tmux"
+for _ in $(seq 1 24); do
+  captured="$(tmux_o capture-pane -p)"
+  case "$captured" in "api "*) break ;; esac
+  sleep 0.5
+done
+assert_row 1 "api                     │" "agents only: the agent's window"
+assert_row 2 "  ? claude              │" "agents only: its badge"
+assert_row 3 "                        │" "agents only: nothing else"
+tmux_i set-option -pu -t "$pane" @agent_state
+wait_for "no agents"
+assert_row 1 "no agents               │" "empty note drawn"
