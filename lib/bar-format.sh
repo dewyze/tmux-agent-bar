@@ -93,7 +93,7 @@ glyph_idle="$(bar_option glyph_idle '·')"
 # to avoid breaking the surrounding #{?...} alternatives.
 state_mark="#{?#{==:#{@agent_state},needs-input},#[fg=yellow bold]${glyph_needs_input},#{?#{==:#{@agent_state},error},#[fg=red bold]${glyph_error},#{?#{==:#{@agent_state},done},#[fg=green]${glyph_done},#{?#{==:#{@agent_state},subagent-running},#[fg=cyan]${glyph_subagent},#{?#{==:#{@agent_state},idle},#[fg=colour243]${glyph_idle},#[fg=cyan]${glyph_running}}}}}}"
 
-# Badge text after the glyph, strict precedence (SCHEMA.md): our rename
+# Badge text after the glyph, strict precedence (docs/SCHEMA.md): our rename
 # (@agent_name) -> the pane title -> the harness (@agent_app) -> nothing.
 # Truncated at name_max.
 # The pane title is where an agent puts its session's name (Claude Code:

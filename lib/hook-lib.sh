@@ -1,6 +1,6 @@
 # Shared helpers for agent hook wrappers. Source, don't execute.
 
-# The harness-agnostic state machine (SCHEMA.md): pure function of
+# The harness-agnostic state machine (docs/SCHEMA.md): pure function of
 # (state, subagent_event, count) -> "state count" on stdout, or "skip" when
 # nothing must be written. The state may be a tmux format, evaluated as it
 # is written; a count of "-" leaves the stored count alone. Harness writers
@@ -57,7 +57,7 @@ resolve_agent_state() {
 #                         and the session id
 #   hooks/<app>.sh      — four lines: source this file, run_agent_hook <app>
 # Schema stamping, the subagent state machine, exit-unsets, tracing, and
-# batched writes all come from here (see SCHEMA.md for the contract).
+# batched writes all come from here (see docs/SCHEMA.md for the contract).
 # Always exits 0 so a failure never disturbs the harness.
 run_agent_hook() {
   local app="$1"

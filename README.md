@@ -36,9 +36,8 @@ brew install --HEAD tmux
 On other systems, follow "From version control" in tmux's
 [install guide](https://github.com/tmux/tmux/wiki/Installing).
 
-A running tmux server keeps the old version until it exits. Check what
-you are running with `tmux display -p '#{version}'`. `tmux kill-server`
-closes every session and starts fresh on the new one.
+If tmux was already running, restart it with `tmux kill-server` to get
+the new version.
 
 ### 2. The plugin
 
@@ -60,8 +59,7 @@ set -g mouse on
 run-shell ~/.tmux/plugins/tmux-agent-bar/agent-bar.tmux
 ```
 
-`mouse on` is only needed for clicking. The bar goes on the left; see
-[Configuration](#configuration) to move it.
+The bar goes on the left; see [Configuration](#configuration) to move it.
 
 The commands in the rest of this page assume the plugin is in
 `~/.tmux/plugins/tmux-agent-bar`, which is where both ways above put it.
@@ -201,8 +199,8 @@ when an option changes. Clicks are ordinary tmux key bindings.
 That is the whole thing. State lives in the tmux server, so there are no
 state files to go stale, and closing a pane cleans up after itself.
 
-[SCHEMA.md](SCHEMA.md) lists the pane options. [ARCHITECTURE.md](ARCHITECTURE.md)
-explains the design in more detail.
+There is more in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and the
+pane options are listed in [docs/SCHEMA.md](docs/SCHEMA.md).
 
 ## Bottom bar
 
@@ -368,7 +366,7 @@ tmux set-option -p -t "$TMUX_PANE" @agent_schema 1 \; \
   set-option -p -t "$TMUX_PANE" @agent_updated "$(date +%s)"
 ```
 
-[SCHEMA.md](SCHEMA.md) has the details.
+[docs/SCHEMA.md](docs/SCHEMA.md) has the details.
 
 ## Contributing
 
