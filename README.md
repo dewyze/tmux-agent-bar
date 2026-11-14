@@ -262,6 +262,15 @@ plugin. Set them with tmux's `side-status-style`:
 set -g side-status-style "bg=colour236,fg=colour254"
 ```
 
+To make the bar match the status line you already have, run:
+
+```sh
+./scripts/adopt-theme.sh
+```
+
+It copies your status line's colours onto the bar and prints the lines to
+add to `tmux.conf` if you want to keep them. Nothing is saved until you do.
+
 ### Mouse and keys
 
 | Option | Default | What it does |
@@ -289,9 +298,6 @@ bind-key A command-prompt -I '#{@agent_name}' -p 'Agent name:' { set-option -p @
 | `@agent_bar_cross_session` | `inline` | `line` puts other sessions on a line of their own. |
 | `@agent_bar_status_bg` | unset | Status line background, for powerline segments. |
 | `@agent_bar_divider_fg` | `colour240` | Colour of the thin dividers. |
-
-`./scripts/adopt-theme.sh` tries to copy the colours of your existing
-status line onto the bottom bar and prints the lines to keep.
 
 ### Debugging
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# scripts/adopt-theme.sh: infer bar styles from the user's existing status
-# line — the last fg=/bg= style block before #I in each window format, and
-# the accent from status-left's first background.
+# scripts/adopt-theme.sh on the status-line bar: infer bar styles from the
+# user's existing status line — the last fg=/bg= style block before #I in
+# each window format, and the accent from status-left's first background.
+# adopt_theme_side_test.sh covers the side bar.
 . "$(dirname "$0")/../testlib.sh"
 
 command -v tmux >/dev/null 2>&1 || fail "tmux not installed"
@@ -21,6 +22,7 @@ export PATH="$TEST_TMP/bin:$PATH"
 unset TMUX
 
 tmux_t new-session -d -x 80 -y 24
+tmux_t set-option -g @agent_bar_position status
 tmux_t setw -g window-status-format "#[fg=colour254,bg=colour236] #I #[fg=colour254,bg=colour236] #W "
 tmux_t setw -g window-status-current-format "#[fg=colour236,bg=colour239,nobold]#[fg=colour255,bg=colour239] #I #W #[fg=colour239,bg=colour236,nobold]"
 tmux_t set -g status-left "#[fg=colour235,bg=colour109,bold] #S #[fg=colour109,bg=colour236]"
@@ -33,3 +35,4 @@ assert_eq "fg=colour255 bg=colour239" "$(tmux_t show -gv @agent_bar_style_window
 assert_eq "colour109" "$(tmux_t show -gv @agent_bar_accent)" "accent from status-left bg"
 assert_eq "colour236" "$(tmux_t show -gv @agent_bar_status_bg)" "status bg inferred"
 assert_contains "$out" 'set -g @agent_bar_style_window' "prints conf lines"
+assert_not_contains "$out" "side-status-style" "the side bar is left alone"
