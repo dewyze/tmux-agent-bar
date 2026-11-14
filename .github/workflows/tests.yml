@@ -1,0 +1,25 @@
+# Runs the test suite on Linux with the tmux Ubuntu ships.
+#
+# That tmux has no side bar, so every side-bar test skips here (exit 101,
+# printed as SKIP). The side bar needs tmux 3.9, which is not released yet.
+# TODO when tmux 3.9 is released: run the suite on 3.9 as well (install it
+# or build the release tag), so the side-bar tests run in CI.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      LC_ALL: C.UTF-8
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install tmux
+        run: sudo apt-get update && sudo apt-get install -y tmux
+      - name: Versions
+        run: tmux -V && bash --version | head -1 && python3 --version
+      - name: Tests
+        run: bash tests/run.sh
