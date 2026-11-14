@@ -1,342 +1,311 @@
 # tmux-agent-bar
 
-A status line for your AI agents, native to tmux. One clickable badge per
-agent pane, across every session: see who's running, who's stuck waiting
-on you, and jump straight to them.
+Shows your AI coding agents in a tmux side bar. Each agent gets a small
+badge that says whether it is working, finished, or waiting on you. Click
+a badge to jump to that agent.
 
-<img src="https://github.com/user-attachments/assets/a7c7b642-4376-438a-84cf-5fa19019bb33" alt="Vertical agent bar on the left edge of a terminal: a session/window tree with one badge per Claude Code agent — a yellow ? badge waiting for input, a green + badge finished, dim idle badges — next to a running Claude Code pane." />
+<img src="https://github.com/user-attachments/assets/a7c7b642-4376-438a-84cf-5fa19019bb33" alt="A tmux window with a side bar on the left listing sessions and windows. Agents appear under their window with a badge: a yellow ? for one waiting on input, a green + for one that finished, dim dots for idle ones." />
 
-*Vertical mode: the bar on the left is the session/window tree with one
-badge per agent — `?` is waiting on you, `+` just finished, `·` is idle.
-The regular status line at the bottom is untouched. Vertical needs tmux
-3.9, or a build of tmux master until 3.9 is released (see
-[Vertical mode](#vertical-mode)); the horizontal mode below works on stock
-tmux.*
+It is meant to be efficient and plain. There is no daemon and nothing
+polls. When an agent changes state, its hook writes a few tmux options and
+tmux redraws the bar. Between events nothing runs.
 
-No daemon, no state files, no polling: agent lifecycle hooks write tmux
-pane user options, and a second status line renders them. The tmux server
-is the database, formats are the view, and a state change redraws the bar
-immediately.
+It works with Claude Code and Codex CLI.
 
-## Reading the bar
+## Install
 
-Horizontal mode claims one extra status line:
+You need:
 
+- tmux 3.9 or newer. 3.9 is not released yet, so for now that means a
+  build of tmux's master branch. See step 1.
+- bash and python3, for the hooks.
+
+### 1. tmux
+
+The side bar is a new tmux feature
+([tmux/tmux#5468](https://github.com/tmux/tmux/pull/5468)). It is in
+tmux's master branch and will ship in 3.9.
+
+With Homebrew you can get it now:
+
+```sh
+brew uninstall tmux
+brew install --HEAD tmux
 ```
-[0] 0:vim  1:api*                                          14:23
-║ win1 │ * fixing tests │ ? review auth ║ win2 │ · ▌ blog ║ api │ +
-```
 
-| Glyph | State |
-|---|---|
-| `*` | running |
-| `**` | subagent running |
-| `?` | needs input — persists until the prompt is actually answered |
-| `+` | done — cleared to `·` when you visit the pane; never shown on the pane you're in |
-| `!` | error |
-| `·` | idle (alive, waiting for work) |
+On other systems, follow "From version control" in tmux's
+[install guide](https://github.com/tmux/tmux/wiki/Installing).
 
-Badges group under their window's label; agents in other sessions group
-under their session's name. A badge disappears only when its agent exits.
-Badge text is your rename if you gave one, otherwise the harness
-(`claude`, ...).
+A running tmux server keeps the old version until it exits. Check what
+you are running with `tmux display -p '#{version}'`. `tmux kill-server`
+closes every session and starts fresh on the new one.
 
-- **Left-click** a badge: jump to that pane (session, window, pane).
-- **Right-click** a badge: menu — jump, clear status, rename, kill pane.
-- Non-badge status clicks fall through to tmux's defaults.
+### 2. The plugin
 
-## Requirements
-
-- tmux ≥ 3.2 (pane user options, format pane loops, clickable status
-  ranges); developed and tested on 3.7b and on tmux master. Vertical mode
-  needs tmux 3.9 or a build of tmux master — see
-  [Vertical mode](#vertical-mode).
-- bash and python3, for the hook scripts.
-- Claude Code and Codex CLI are wired up today — see
-  [Other agents](#other-agents) for adding more.
-
-## Setup
-
-Two pieces: the **bar** (a tmux plugin) and the **hooks** (on the agent's
-side: Claude Code, Codex, or both). Vertical and horizontal modes install identically.
-
-### 1. The bar
-
-TPM:
+With [TPM](https://github.com/tmux-plugins/tpm), add to `tmux.conf`:
 
 ```tmux
+set -g mouse on
+set -g @agent_bar_position left
 set -g @plugin 'dewyze/tmux-agent-bar'
 ```
 
-Or manually, from a clone:
+Without TPM:
 
 ```sh
 git clone https://github.com/dewyze/tmux-agent-bar ~/.tmux/plugins/tmux-agent-bar
 ```
 
 ```tmux
+set -g mouse on
+set -g @agent_bar_position left
 run-shell ~/.tmux/plugins/tmux-agent-bar/agent-bar.tmux
 ```
 
-### 2. The hooks: Claude Code
+`mouse on` is only needed for clicking. Use `right` to put the bar on the
+other side.
 
-Preferred: install as a Claude Code plugin (clean install *and*
-uninstall, no settings surgery):
+### 3. Hooks for your agent
+
+The bar only shows agents that report to it. Set up the ones you use.
+
+**Claude Code.** Install it as a Claude Code plugin. In Claude:
 
 ```
-/plugin marketplace add dewyze/tmux-agent-bar   # or the local repo path
+/plugin marketplace add dewyze/tmux-agent-bar
 /plugin install tmux-agent-bar@tmux-agent-bar
 ```
 
-Alternative, for setups without plugin support — edits
-`~/.claude/settings.json` directly (idempotent, with rotated backups):
+If you would rather not use Claude plugins, this script adds the same
+hooks to `~/.claude/settings.json` and keeps a backup:
 
 ```sh
 ./scripts/install-claude-hooks.sh
 ```
 
-Use one path or the other, not both, or every event fires the hook twice
-(both register the same events; a test enforces it). Hooks load at Claude
-session start — restart sessions (or `/reload-plugins`) after installing.
+Use one or the other. With both, every event is reported twice. Restart
+your Claude sessions afterwards.
 
-### 3. The hooks: Codex
+**Codex CLI.**
 
 ```sh
 ./scripts/install-codex-hooks.sh
 ```
 
-It adds `hooks/codex.sh` to `~/.codex/hooks.json` (idempotent, with rotated
-backups, other hooks kept). Codex skips new hooks until you approve them:
-run `/hooks` inside Codex, then restart it.
+This adds the hooks to `~/.codex/hooks.json` and keeps a backup. Then two
+more steps:
 
-Codex must also run without its shared background server. Add this to
-`~/.codex/config.toml`:
+1. Run `/hooks` inside Codex and approve them. Codex ignores new hooks
+   until you do.
+2. Turn off Codex's shared background server. Add this to
+   `~/.codex/config.toml`:
 
-```toml
-[features]
-daemon_auto_start = false
+   ```toml
+   [features]
+   daemon_auto_start = false
+   ```
+
+   or start Codex with `codex --no-daemon`.
+
+The second step is a workaround for a Codex bug
+([openai/codex#48500](https://github.com/openai/codex/issues/48500)).
+With the background server on, hooks cannot tell which pane they belong
+to, so the plugin shows no Codex badges at all. That seemed better than
+showing them on the wrong pane.
+
+Codex also reports a little differently from Claude Code. A badge appears
+at the first prompt, not when Codex starts, and it can stay for up to a
+minute after Codex quits.
+
+Now start an agent in any pane and its badge should appear.
+
+### Updating
+
+Update the plugin the way you installed it (TPM, or `git pull`). If you
+installed the Claude Code plugin, also run
+`claude plugin update tmux-agent-bar`. Then:
+
+```sh
+./scripts/reset.sh
 ```
 
-or start it with `codex --no-daemon`. With the server on (Codex's
-default) there are no Codex badges: the server runs every session's hooks
-itself and they can't tell which pane they belong to
-([openai/codex#48500](https://github.com/openai/codex/issues/48500)). The
-hook writes nothing in that case, so no pane is mislabelled.
+It clears all badges and reloads the bar. Restart your agents after that.
 
-Two more things differ from Claude Code, both Codex's doing: a badge first
-appears at a session's first prompt, not when Codex starts, and it stays
-for up to a minute after Codex quits.
+### Uninstalling
 
-That's it: start an agent in any pane and its badge appears.
+1. Claude Code: `/plugin uninstall tmux-agent-bar@tmux-agent-bar`. If you
+   used the script, delete the entries that run `hooks/claude.sh` from
+   `~/.claude/settings.json`.
+2. Codex: delete the entries that run `hooks/codex.sh` from
+   `~/.codex/hooks.json`.
+3. tmux: remove the plugin lines from `tmux.conf` and restart the server
+   with `tmux kill-server`.
 
-### Upgrade notes
+## The bar
 
-- The Claude-plugin path runs hooks from Claude's installed *copy* of
-  this repo, while tmux renders from your checkout/TPM clone. The hook
-  stamps `@agent_writer_version` on every write so skew between the two
-  is observable. After updating either side: `claude plugin update
-  tmux-agent-bar`, then `scripts/reset.sh` (clears all agent state and
-  reapplies the bar), then restart agent sessions.
-- Horizontal mode raises `status` to 2 and claims `status-format[1]`. If
-  you already run 3+ status lines your `status` value is kept, but line
-  index 1 is still taken by the bar.
+The bar lists every session and its windows. Agents sit under the window
+they run in.
 
-## Uninstall
+| Badge | Meaning |
+|---|---|
+| `*` | working |
+| `**` | working, with subagents running |
+| `?` | waiting on you |
+| `+` | finished |
+| `!` | stopped on an error |
+| `·` | idle |
 
-1. Hooks: `/plugin uninstall tmux-agent-bar@tmux-agent-bar` in Claude
-   Code. If you used `install-claude-hooks.sh`, delete the entries that
-   run `hooks/claude.sh` from `~/.claude/settings.json` (the script left
-   backups next to it). For Codex, delete the entries that run
-   `hooks/codex.sh` from `~/.codex/hooks.json`.
-2. Bar: remove the `@plugin` or `run-shell` line and any `@agent_bar_*`
-   options from tmux.conf, then restart the tmux server
-   (`tmux kill-server`). The plugin's status line, mouse bindings and
-   hooks live in the running server, so they last until it exits. Agent
-   state is stored on panes and goes with them.
+A few things about how the badges behave:
 
-## Vertical mode
+- `?` stays until that agent has its answer. Other activity in the same
+  pane, such as a subagent still working, does not clear it.
+- `+` means "finished and you have not looked yet". It turns into `·` when
+  you visit the pane, and it never shows for the pane you are looking at.
+- A badge goes away when its agent exits.
+- An agent is listed by its app name (`claude`, `codex`) until you give it
+  a name of your own.
 
-Same install; one option:
+Clicking:
+
+- Left-click a badge to go to that agent's session, window and pane.
+- Left-click a window or a session name to go there.
+- Right-click a badge for a small menu: jump, clear status, rename, kill
+  pane.
+
+When the list is taller than the screen it scrolls, and keeps the current
+window in view.
+
+> **Screenshot to add:** the right-click menu open on a badge.
+
+> **Screenshot or GIF to add:** an agent going from `*` to `?`, then a
+> click that jumps to it.
+
+## How it works
+
+Claude Code and Codex can run a command on events such as "prompt
+submitted", "permission requested" and "turn finished". This plugin
+registers one small script for those events. The script works out the
+agent's state and stores it on the tmux pane as a user option, for
+example `@agent_state needs-input`.
+
+The bar is a tmux format string that reads those options. tmux redraws it
+when an option changes. Clicks are ordinary tmux key bindings.
+
+That is the whole thing. State lives in the tmux server, so there are no
+state files to go stale, and closing a pane cleans up after itself.
+
+[SCHEMA.md](SCHEMA.md) lists the pane options. [ARCHITECTURE.md](ARCHITECTURE.md)
+explains the design in more detail.
+
+## Bottom bar
+
+The plugin can also draw the agents on a second status line at the
+bottom. This works on released tmux (3.2 and newer). It is what you get
+if you leave out `@agent_bar_position`, or if your tmux has no side bar.
+
+```
+[0] 0:vim  1:api*                                          14:23
+║ win1 │ * fixing tests │ ? review auth ║ win2 │ · ▌ blog ║ api │ +
+```
+
+It works, but it is not a priority. I use the side bar, so that is where
+the attention goes. Pull requests for the bottom bar are welcome.
+
+## Configuration
+
+Options are tmux options. Set them in `tmux.conf` above the plugin line:
 
 ```tmux
-set -g @agent_bar_position left   # or right
+set -g @agent_bar_width 30
 ```
 
-This renders the bar as a fixed-width column on the terminal's edge: the
-full session/window tree, always (it's a navigation surface even with
-zero agents — nothing reflows when the first one appears), with agent
-badges indented under their window and foreign sessions under an accent
-header. Every row is clickable. `@agent_bar_width` sets the column width.
+Then reload your `tmux.conf`, or run `./scripts/reset.sh`.
 
-The column's own colours come from tmux's `side-status-style`, which the
-plugin leaves alone: by default, upstream's green text on the terminal
-background. To match your status line instead, set it yourself:
+### Layout
+
+| Option | Default | What it does |
+|---|---|---|
+| `@agent_bar_position` | `status` | `left` or `right` for the side bar. `status` is the bottom bar. |
+| `@agent_bar_width` | `24` | Width of the side bar, in columns. |
+| `@agent_bar_cross_session` | `inline` | `off` shows only the session you are in. |
+
+### Badges and names
+
+| Option | Default | What it does |
+|---|---|---|
+| `@agent_bar_glyph_running` | `*` | Badge for a working agent. |
+| `@agent_bar_glyph_subagent_running` | `**` | Badge while subagents run. |
+| `@agent_bar_glyph_needs_input` | `?` | Badge for an agent waiting on you. |
+| `@agent_bar_glyph_done` | `+` | Badge for a finished agent. |
+| `@agent_bar_glyph_error` | `!` | Badge for an error. |
+| `@agent_bar_glyph_idle` | `·` | Badge for an idle agent. |
+| `@agent_bar_name_max` | `24` | Longest agent name shown before it is cut. |
+| `@agent_bar_label_suffix` | empty | Text after each window name, such as `:`. |
+| `@agent_bar_session_marker` | ` ▌ ` | Mark in front of a session name. |
+
+### Colours
+
+| Option | Default | What it does |
+|---|---|---|
+| `@agent_bar_style_window` | `fg=colour243` | Style of window names. |
+| `@agent_bar_style_window_active` | `fg=colour250 bold` | Style of the current window's name. |
+| `@agent_bar_accent` | `colour109` | Colour of session names. |
+
+Styles use tmux's style syntax, with spaces between parts and no commas.
+
+The side bar's own background and text colour belong to tmux, not to the
+plugin. Set them with tmux's `side-status-style`:
 
 ```tmux
 set -g side-status-style "bg=colour236,fg=colour254"
 ```
 
-It requires tmux with the `side-status` feature
-([tmux/tmux#5468](https://github.com/tmux/tmux/pull/5468)). It is on tmux
-master and ships in tmux 3.9; until 3.9 is released, build master. With
-Homebrew:
+### Mouse and keys
 
-```sh
-brew uninstall tmux && brew install --HEAD tmux
-```
-
-Or from source:
-
-```sh
-git clone https://github.com/tmux/tmux.git && cd tmux
-sh autogen.sh && ./configure && make
-```
-
-On macOS, `./configure` requires jemalloc: `brew install jemalloc`, or
-pass `--disable-jemalloc`.
-
-A running tmux server keeps the old version until it exits: check with
-`tmux display -p '#{version}'`, and run `tmux kill-server` (it closes
-every session) to start on the new one.
-
-The option is safe in dotfiles shared across machines: the plugin probes
-for `side-status` at load and falls back to the horizontal bar on stock
-tmux.
-
-## Match your theme
-
-The bar's default palette is deliberately plain. To make it match the
-status line you already have:
-
-```sh
-./scripts/adopt-theme.sh
-```
-
-It reads your live `window-status-format`, `window-status-current-format`,
-`status-left`, and `status-style`, fishes the fg/bg pairs out of their
-style blocks, applies them to the bar, and prints the `set -g` lines to
-paste into tmux.conf to make it stick. It's a heuristic tuned for
-powerline-style themes — it errors out rather than guessing if it can't
-find a usable style.
-
-## Configuration
-
-Set options before the plugin loads; re-run `agent-bar.tmux` (or
-`scripts/reset.sh`) to apply changes.
-
-| Option | Default | |
+| Option | Default | What it does |
 |---|---|---|
-| `@agent_bar_theme` | `ascii` | `nerdfont` uses powerline dividers |
-| `@agent_bar_position` | `status` | `left`/`right`: vertical mode (see above) |
-| `@agent_bar_line` | `1` | which status line the horizontal bar claims |
-| `@agent_bar_width` | `24` | vertical-mode column width |
-| `@agent_bar_mouse` | `on` | `off` leaves mouse keys entirely untouched |
-| `@agent_bar_pane_separator` | ` │ ` | between agents in a group |
-| `@agent_bar_group_separator` | ` ║ ` | opens each window group |
-| `@agent_bar_label_suffix` | *(empty)* | e.g. `:` for colon grammar |
-| `@agent_bar_cross_session` | `inline` | `line`: foreign agents on their own status line, compact; `off`: local only |
-| `@agent_bar_session_marker` | ` ▌ ` | accent marker introducing a foreign session |
-| `@agent_bar_name_max` | `24` | badge-name truncation |
-| `@agent_bar_glyph_<state>` | `* ** ? + ! ·` | per-state glyph overrides |
-| `@agent_bar_style_window` | `fg=colour243` | inactive window-group style (space-separated) |
-| `@agent_bar_style_window_active` | `fg=colour250 bold` | active window-group style — follows the active window |
-| `@agent_bar_accent` | `colour109` | session marker/name colour |
-| `@agent_bar_status_bg` | *(unset)* | status-line bg; with nerdfont + bg styles, enables powerline segment transitions |
-| `@agent_bar_divider_fg` | `colour240` / `colour245` | thin-divider colour (brighter default in segment mode) |
-| `@agent_bar_trace` | *(unset)* | file path enables hook event tracing |
+| `@agent_bar_mouse` | `on` | `off` leaves all mouse bindings alone. |
 
-## Recipes
-
-**Rename an agent from the keyboard** — the right-click menu's Rename
-just sets the `@agent_name` pane option, so a hotkey is one binding
-(renames the agent in the *current* pane; empty input reverts to the
-harness name):
+The plugin binds no keys. Two bindings you may want:
 
 ```tmux
+# Show or hide the side bar
+bind-key b if-shell -F '#{==:#{side-status},off}' 'set -g side-status left' 'set -g side-status off'
+
+# Name the agent in the current pane (an empty name goes back to the app name)
 bind-key A command-prompt -I '#{@agent_name}' -p 'Agent name:' { set-option -p @agent_name '%%' }
 ```
 
-The agent state is readable from any tmux format — these need nothing
-from the plugin's bar. The building block is a pane probe, "does any pane
-in this window have agent state X":
+### Bottom bar only
 
-```
-#{?#{P:#{?#{==:#{@agent_state},needs-input},x,}},<yes>,<no>}
-```
+| Option | Default | What it does |
+|---|---|---|
+| `@agent_bar_line` | `1` | Which status line the bar takes. |
+| `@agent_bar_theme` | `ascii` | `nerdfont` uses powerline dividers. |
+| `@agent_bar_pane_separator` | ` │ ` | Between agents in a window. |
+| `@agent_bar_group_separator` | ` ║ ` | In front of each window. |
+| `@agent_bar_cross_session` | `inline` | `line` puts other sessions on a line of their own. |
+| `@agent_bar_status_bg` | unset | Status line background, for powerline segments. |
+| `@agent_bar_divider_fg` | `colour240` | Colour of the thin dividers. |
 
-**Window-list flag** — a dot in your `window-status-format` when a window
-contains an agent waiting for input (style attrs inside conditionals use
-spaces, never commas — commas would split the conditional):
+`./scripts/adopt-theme.sh` tries to copy the colours of your existing
+status line onto the bottom bar and prints the lines to keep.
 
-```tmux
-setw -g window-status-format ' #I #{?#{P:#{?#{==:#{@agent_state},needs-input},x,}},#[fg=yellow bold]● #[default],}#W '
-```
+### Debugging
 
-**Status-corner aggregate** — "any agent anywhere needs me", for
-`status-left`/`status-right` (spans all sessions):
+| Option | Default | What it does |
+|---|---|---|
+| `@agent_bar_trace` | unset | Path of a file to log every hook event to. |
 
-```tmux
-set -ga status-right '#{?#{S:#{W:#{P:#{?#{==:#{@agent_state},needs-input},x,}}}},#[fg=yellow bold] ● agents ,}'
-```
+## Adding another agent
 
-**Pane border badge** — the agent's state on its own pane border:
+An agent needs two small files: a parser that turns its hook payload into
+a state, and a four-line wrapper script. `lib/parse-codex.py` and
+`hooks/codex.sh` are a short real example, and
+`tests/hooks/new_harness_test.sh` walks through the steps.
 
-```tmux
-set -g pane-border-status top
-set -g pane-border-format ' #{pane_index} #{?#{@agent_state},#[fg=cyan]#{@agent_state} ,}'
-```
-
-Note: a bare `#{@agent_state}` in a window-list entry resolves against
-that window's *active pane* only — the `#{P:...}` probe is what makes it
-"any pane in the window".
-
-## Architecture
-
-```
-Claude Code hook event (JSON on stdin)
-  → hooks/claude.sh → lib/parse-claude.py     event → state
-  → tmux set-option -p @agent_app/@agent_state/@agent_subagents/@agent_updated
-  → status-format[1] or side-status-format    S/W/P loops render badges
-    (lib/bar-format.sh)
-  → MouseDown1Status / MouseDown3Status       switch-client / menu
-    (MouseDown1SideStatus / MouseDown3SideStatus in vertical mode)
-```
-
-States: `running`, `subagent-running` (refcounted, with a reset guard so
-a lost SubagentStop can't stick), `needs-input`, `done`, `error`, `idle`
-(dim — a live agent waiting). Unset means gone; pane options die with the
-pane, so cleanup is automatic. The full producer/consumer contract is
-[SCHEMA.md](SCHEMA.md); design rationale is in
-[ARCHITECTURE.md](ARCHITECTURE.md).
-
-### Other agents
-
-Claude Code and Codex CLI are wired up today, each as the two files below
-— any script can join the bar with one `set-option` per SCHEMA.md. PRs
-welcome for other harnesses (codex, cursor, opencode, ...); a full
-integration is two files:
-
-1. `lib/parse-<app>.py` — pure: payload on stdin → up to five
-   lines on stdout: state, subagent event (`start`/`stop`/`soft`/empty),
-   transcript path (or empty), then optionally who the event is from (a
-   subagent's id, or `main`) and the session id. Unknown events print
-   nothing. `lib/parse-codex.py` is a short real one.
-2. `hooks/<app>.sh` — four lines:
-
-   ```sh
-   #!/usr/bin/env bash
-   case "$0" in */*) here="${0%/*}" ;; *) here=. ;; esac
-   . "$here/../lib/hook-lib.sh"
-   run_agent_hook <app> "$@"
-   ```
-
-Schema stamping, the subagent state machine, exit-unsets, and tracing all
-come from `run_agent_hook`. Wire your harness to invoke the wrapper on
-its lifecycle events, and its panes appear on the bar.
-`tests/hooks/new_harness_test.sh` is this recipe, executable.
-
-For anything simpler — a build, a deploy — skip the recipe and write the
-options directly:
+Anything that can run a shell command can also show up on the bar by
+setting the pane options itself:
 
 ```sh
 tmux set-option -p -t "$TMUX_PANE" @agent_schema 1 \; \
@@ -345,40 +314,23 @@ tmux set-option -p -t "$TMUX_PANE" @agent_schema 1 \; \
   set-option -p -t "$TMUX_PANE" @agent_updated "$(date +%s)"
 ```
 
-## Development
+[SCHEMA.md](SCHEMA.md) has the details.
+
+## Contributing
+
+Most of this code was written with an LLM, with me guiding and reviewing
+it. Pull requests are welcome as long as they are reasonable and serve a
+purpose. Excessive, pedantic LLM pull requests will be closed without
+hesitation or prejudice.
+
+To run the tests:
 
 ```sh
-bash tests/run.sh                # all suites; passing tests print nothing
-bash tests/run.sh tests/parser/parse_claude_test.sh
+bash tests/run.sh
 ```
 
-Unit suites stub tmux on PATH and assert exact commands; integration
-suites run a real tmux server on a private socket, including a
-nested-tmux capture test that verifies the bar actually draws.
+Passing tests print nothing.
 
-## Roadmap
+## License
 
-Ranked by expected daily leverage:
-
-1. **Remote approve/deny** — right-click a `?` badge → Approve/Deny items
-   `send-keys` the answer into the prompt; handle permissions from any window
-   without visiting the pane. The badge becomes a control surface.
-2. **Desktop notifications on needs-input** — the hook knows the moment;
-   `terminal-notifier` banner, deep-link click back to the pane.
-3. **Waiting-duration on badges** (`? api 4m`) — `@agent_updated` is already
-   recorded, and a status format can subtract it from now
-   (`#{e|-:%s,#{@agent_updated}}`); it refreshes on `status-interval`.
-4. **Attention-first ordering** — formats can't sort by state; needs the
-   first persistent `#()` helper.
-5. **Hookless agent detection** — panes running `claude`/`codex` without
-   hooks installed still get a dim badge via command-name heuristics.
-6. **More agents** — cursor, kiro, opencode, pi via the pane-option
-   contract.
-7. **Colours and icons** — per-state colours, more nerd-font themes.
-8. **Upstream: `PermissionResolved` hook event in Claude Code** — denials
-   emit no event today; this would delete `verify-needs-input.sh`.
-9. **Vertical status line in a tmux release** —
-   [tmux/tmux#5468](https://github.com/tmux/tmux/pull/5468) is on tmux
-   master; once 3.9 is released, vertical mode works on stock tmux.
-
-Dropped: auto-hide when empty (idle badges mean the bar is never empty).
+MIT. See [LICENSE](LICENSE).
