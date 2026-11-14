@@ -42,6 +42,8 @@ out="$(bash "$ROOT_DIR/scripts/adopt-theme.sh")"
 assert_eq "fg=colour254 bg=colour236" "$(tmux_t show -gv @agent_bar_style_window)" "inactive inferred"
 assert_eq "fg=colour255 bg=colour239" "$(tmux_t show -gv @agent_bar_style_window_active)" "active inferred"
 assert_eq "colour109" "$(tmux_t show -gv @agent_bar_accent)" "accent from status-left bg"
+assert_eq "fg=colour235 bg=colour109 bold" "$(tmux_t show -gv @agent_bar_style_session)" "session block from status-left's first block"
+assert_contains "$out" 'set -g @agent_bar_style_session "fg=colour235 bg=colour109 bold"' "prints the session line"
 assert_eq "" "$(tmux_t show -gqv @agent_bar_status_bg)" "status bg is a status-line option"
 assert_contains "$out" 'set -g @agent_bar_style_window_active' "prints the window lines"
 assert_eq "left" "$(tmux_t show -gv side-status)" "the side bar is still up"
@@ -69,3 +71,11 @@ if bash "$ROOT_DIR/scripts/adopt-theme.sh" >/dev/null 2>"$TEST_TMP/err"; then
 fi
 assert_file_contains "$TEST_TMP/err" "found nothing to match" "says why"
 assert_eq "bg=colour52" "$(tmux_t show -gv side-status-style)" "bar colours left alone"
+
+# A status-left block with a fill but no text colour is an accent, not a
+# session block
+tmux_t set -gu @agent_bar_style_session
+tmux_t set -g status-left "#[bg=colour109] #S "
+bash "$ROOT_DIR/scripts/adopt-theme.sh" >/dev/null
+assert_eq "colour109" "$(tmux_t show -gv @agent_bar_accent)" "accent still inferred"
+assert_eq "" "$(tmux_t show -gqv @agent_bar_style_session)" "no session block without a text colour"

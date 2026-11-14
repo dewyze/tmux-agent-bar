@@ -36,3 +36,4 @@ assert_eq "colour109" "$(tmux_t show -gv @agent_bar_accent)" "accent from status
 assert_eq "colour236" "$(tmux_t show -gv @agent_bar_status_bg)" "status bg inferred"
 assert_contains "$out" 'set -g @agent_bar_style_window' "prints conf lines"
 assert_not_contains "$out" "side-status-style" "the side bar is left alone"
+assert_eq "" "$(tmux_t show -gqv @agent_bar_style_session)" "session blocks are a side-bar option"

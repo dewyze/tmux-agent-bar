@@ -10,7 +10,8 @@
 # Side bar: the bar itself (tmux's side-status-style, which the plugin
 # never sets on its own) takes status-style, or the inactive window's
 # colours when status-style names no background; window and session names
-# take whatever could be inferred.
+# take whatever could be inferred, session names as a block when
+# status-left opens with one (a text colour on a fill).
 # Status-line bar: the inferred styles and the status background; nothing
 # to infer is an error.
 set -euo pipefail
@@ -18,7 +19,7 @@ set -euo pipefail
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 
-infer() { # $1: format string, $2: mode (block|accent)
+infer() { # $1: format string, $2: mode (block|accent|session)
   python3 - "$1" "$2" <<'PY'
 import re
 import sys
@@ -27,12 +28,17 @@ fmt, mode = sys.argv[1], sys.argv[2]
 if mode == "block":
     fmt = fmt.split("#I")[0]
 blocks = re.findall(r"#\[([^\]]*)\]", fmt)
-for block in (blocks if mode == "accent" else reversed(blocks)):
+for block in (reversed(blocks) if mode == "block" else blocks):
     tokens = re.split(r"[,\s]+", block)
     fg = next((t for t in tokens if t.startswith("fg=")), None)
     bg = next((t for t in tokens if t.startswith("bg=")), None)
     if mode == "accent" and bg:
         print(bg[3:])
+        break
+    if mode == "session":
+        # Only the first block counts: the one the session name sits in.
+        if fg and bg:
+            print(" ".join([fg, bg] + (["bold"] if "bold" in tokens else [])))
         break
     if mode == "block" and fg and bg:
         print(f"{fg} {bg}")
@@ -43,6 +49,7 @@ PY
 window="$(infer "$(tmux show -gv window-status-format 2>/dev/null || true)" block)"
 active="$(infer "$(tmux show -gv window-status-current-format 2>/dev/null || true)" block)"
 accent="$(infer "$(tmux show -gv status-left 2>/dev/null || true)" accent)"
+session="$(infer "$(tmux show -gv status-left 2>/dev/null || true)" session)"
 status_bg="$(tmux show -gv status-style 2>/dev/null | tr ', ' '\n\n' | sed -n 's/^bg=//p' | head -1)"
 [ -n "$status_bg" ] || status_bg="$(tmux show -gv status-bg 2>/dev/null || true)"
 
@@ -79,6 +86,7 @@ if [ "$side" = 1 ]; then
   [ -n "$bar_style" ] && apply side-status-style "$bar_style"
   [ -n "$window" ] && apply @agent_bar_style_window "$window"
   [ -n "$active" ] && apply @agent_bar_style_window_active "$active"
+  [ -n "$session" ] && apply @agent_bar_style_session "$session"
 else
   [ -n "$window" ] || { echo "could not infer a style from window-status-format" >&2; exit 1; }
   [ -n "$active" ] || { echo "could not infer a style from window-status-current-format" >&2; exit 1; }
