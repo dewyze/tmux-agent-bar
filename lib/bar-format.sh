@@ -152,7 +152,12 @@ if [ "$position" != "status" ]; then
   v_list="#[list=on]#[list=left-marker]#[acs]-#[noacs]#[nl]#[list=right-marker]#[acs].#[noacs]#[nl]"
   v_focus='#{?window_active,#[list=focus],}'
   v_badge() { printf '#{?#{@agent_state},%s#[range=user|#{pane_id}]%s%s#[default]#[norange]#[nl],}' "$1" "${state_mark}" "${name_suffix}"; }
-  v_window() { printf '%s%s%s#[range=user|#{window_id}]#{window_name}%s#[norange]#[default]#[list=on]#[nl]#{P:%s}' "$1" "$3" "${wstyle}" "${label_suffix}" "$(v_badge "$2")"; }
+  # @agent_bar_padding spaces either side of a window name, inside its
+  # style and click range, so a name with a background reads as a block.
+  v_pad="$(bar_option padding 1)"
+  [[ "$v_pad" =~ ^[0-9]+$ ]] || v_pad=1
+  v_pad="$(printf "%${v_pad}s" '')"
+  v_window() { printf '%s%s%s#[range=user|#{window_id}]%s#{window_name}%s%s#[norange]#[default]#[list=on]#[nl]#{P:%s}' "$1" "$3" "${wstyle}" "${v_pad}" "${label_suffix}" "${v_pad}" "$(v_badge "$2")"; }
   v_local_row="$(v_window '' '  ' "$v_focus")"
   v_foreign_row="$(v_window '  ' '    ' '')"
   v_header="#[fg=${accent} bold]${session_marker}#[default]#[fg=${accent}]#[range=user|#{session_id}]#{session_name}#[norange]#[default]#[nl]"

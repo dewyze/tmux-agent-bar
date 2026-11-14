@@ -43,6 +43,19 @@ tmux_t set-option -g @agent_bar_label_suffix ":"
 assert_contains "$(shown)" "api:" "label suffix"
 tmux_t set-option -gu @agent_bar_label_suffix
 
+# Window names get a space either side, inside their style and click range;
+# @agent_bar_padding sets how many
+raw_bar() { tmux_t display-message -p "$(bash "$ROOT_DIR/lib/bar-format.sh")"; }
+assert_contains "$(raw_bar)" "] api #[norange]" "one space of padding by default"
+tmux_t set-option -g @agent_bar_padding 0
+assert_contains "$(raw_bar)" "]api#[norange]" "padding 0 sits flush"
+tmux_t set-option -g @agent_bar_padding 2
+assert_contains "$(raw_bar)" "]  api  #[norange]" "padding 2"
+tmux_t set-option -g @agent_bar_label_suffix ":"
+assert_contains "$(raw_bar)" "]  api:  #[norange]" "suffix stays next to the name"
+tmux_t set-option -gu @agent_bar_label_suffix
+tmux_t set-option -gu @agent_bar_padding
+
 # Session marker override (no client in this context -> session is foreign)
 assert_contains "$(shown)" "▌ work" "default session marker"
 tmux_t set-option -g @agent_bar_session_marker " >S "

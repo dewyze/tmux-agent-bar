@@ -248,6 +248,7 @@ directory.
 | `@agent_bar_glyph_error` | `!` | Badge for an error. |
 | `@agent_bar_glyph_idle` | `·` | Badge for an idle agent. |
 | `@agent_bar_name_max` | `24` | Longest agent name shown before it is cut. |
+| `@agent_bar_padding` | `1` | Spaces either side of a window name. |
 | `@agent_bar_label_suffix` | empty | Text after each window name, such as `:`. |
 | `@agent_bar_session_marker` | ` ▌ ` | Mark in front of a session name. |
 
