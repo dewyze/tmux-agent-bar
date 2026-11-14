@@ -7,8 +7,9 @@
 # window-status-format (inactive) and window-status-current-format
 # (active), and the accent from status-left's first background.
 #
-# Side bar: the bar itself takes status-style (tmux's side-status-style,
-# which the plugin never sets on its own), and window and session names
+# Side bar: the bar itself (tmux's side-status-style, which the plugin
+# never sets on its own) takes status-style, or the inactive window's
+# colours when status-style names no background; window and session names
 # take whatever could be inferred.
 # Status-line bar: the inferred styles and the status background; nothing
 # to infer is an error.
@@ -59,8 +60,23 @@ apply() { # $1: option, $2: value
 }
 
 if [ "$side" = 1 ]; then
+  # The bar's own colours: status-style when it names a background. A
+  # status line can leave that bare and colour itself in its window
+  # formats, so next the inactive window's colours, then whatever colour
+  # status-style does have.
   status_style="$(tmux show -gv status-style 2>/dev/null || true)"
-  [ -n "$status_style" ] && apply side-status-style "$status_style"
+  bar_style=""
+  case ",${status_style// /,}," in
+    *,bg=default,*) ;;
+    *,bg=*) bar_style="$status_style" ;;
+  esac
+  if [ -z "$bar_style" ] && [ -n "$window" ]; then
+    bar_style="${window// /,}"
+  fi
+  if [ -z "$bar_style" ]; then
+    case "$status_style" in *fg=*|*bg=*) bar_style="$status_style" ;; esac
+  fi
+  [ -n "$bar_style" ] && apply side-status-style "$bar_style"
   [ -n "$window" ] && apply @agent_bar_style_window "$window"
   [ -n "$active" ] && apply @agent_bar_style_window_active "$active"
 else
