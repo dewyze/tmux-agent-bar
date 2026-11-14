@@ -182,8 +182,10 @@ Clicking:
 When the list is taller than the screen it scrolls, and keeps the current
 window in view.
 
-> **GIF to add:** an agent going from `*` to `?`, then a click that jumps
-> to it.
+<img src="docs/badge.gif" alt="A short recording. A prompt is typed into a Claude Code session, and the agent's badge in the side bar changes from a dim dot to a star while it works, then back to a dot when the answer arrives." />
+
+*A badge follows its agent: idle, working, idle again. (Shown with the
+[blocks](#an-example-blocks) look.)*
 
 ## How it works
 
