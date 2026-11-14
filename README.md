@@ -4,7 +4,7 @@ Shows your AI coding agents in a tmux side bar. Each agent gets a small
 badge that says whether it is working, finished, or waiting on you. Click
 a badge to jump to that agent.
 
-<img src="https://github.com/user-attachments/assets/a7c7b642-4376-438a-84cf-5fa19019bb33" alt="A tmux window with a side bar on the left listing sessions and windows. Agents appear under their window with a badge: a yellow ? for one waiting on input, a green + for one that finished, dim dots for idle ones." />
+<img src="docs/default.png" alt="A terminal running tmux. A narrow bar down the left side lists two sessions, main and work. Under each are the windows that have an agent, and under each window the agent with a badge: a dim dot for idle, a green plus for finished, a yellow question mark for waiting on you, stars for working. The rest of the window is a Claude Code session." />
 
 It is meant to be efficient and plain. There is no daemon and nothing
 polls. When an agent changes state, its hook writes a few tmux options and
@@ -285,6 +285,35 @@ To make the bar match the status line you already have, run:
 
 It copies your status line's colours onto the bar and prints the lines to
 add to `tmux.conf` if you want to keep them. Nothing is saved until you do.
+
+### An example: blocks
+
+The picture at the top of this page is the bar with no options set. This
+is the same bar made to match a powerline-style status line:
+
+<img src="docs/blocks.png" alt="The same terminal with the side bar styled as blocks: session names are filled blue blocks with a pointed end, the current window is a grey block with a pointed end, and a thin line runs down the left of each session's rows." />
+
+It is seven lines in `tmux.conf`, above the plugin line:
+
+```tmux
+# The bar's own background and text
+set -g side-status-style "bg=colour236,fg=colour254"
+# Window names, and the window you are in
+set -g @agent_bar_style_window "fg=colour254 bg=colour236"
+set -g @agent_bar_style_window_active "fg=colour254 bg=colour239"
+# Session names as filled blocks
+set -g @agent_bar_style_session "fg=colour235 bg=colour109 bold"
+# A pointed end on the blocks (needs a Nerd Font)
+set -g @agent_bar_theme "nerdfont"
+# The line down each session's rows, and its colour
+set -g @agent_bar_guide "│"
+set -g @agent_bar_divider_fg "colour240"
+```
+
+Change the colours to your own. The `adopt-theme.sh` script above will
+work out the first four lines from your status line. Leave out the
+`nerdfont` line if your terminal font has no powerline glyphs; the blocks
+then end square.
 
 ### Mouse and keys
 
