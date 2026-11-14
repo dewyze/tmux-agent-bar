@@ -24,6 +24,8 @@ chmod +x "$TEST_TMP/bin/tmux"
 export PATH="$TEST_TMP/bin:$PATH"
 
 tmux_t new-session -d -s work -n api -x 80 -y 24
+# The status-line bar: the default is the side bar.
+tmux_t set-option -g @agent_bar_position status
 tmux_t new-session -d -s blog -n web -x 80 -y 24
 local_pane="$(tmux_t list-panes -t work:api -F '#{pane_id}')"
 foreign_pane="$(tmux_t list-panes -t blog:web -F '#{pane_id}')"

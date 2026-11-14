@@ -21,6 +21,8 @@ chmod +x "$TEST_TMP/bin/tmux"
 export PATH="$TEST_TMP/bin:$PATH"
 
 tmux_t new-session -d -s work -n api -x 80 -y 24
+# The status-line bar: the default is the side bar.
+tmux_t set-option -g @agent_bar_position status
 pane="$(tmux_t list-panes -t work:api -F '#{pane_id}')"
 tmux_t set-option -p -t "$pane" @agent_state running
 tmux_t set-option -g @agent_bar_theme nerdfont

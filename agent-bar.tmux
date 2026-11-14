@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Plugin entry point (TPM runs this, or source it from a run-shell). Installs
-# the agent bar on status line 1 and the badge mouse bindings.
+# the agent bar (the side bar, or status line 1 on a tmux without one) and
+# the badge mouse bindings.
 set -u
 
 CURRENT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
@@ -14,7 +15,7 @@ SIDE_WIDTH_OPT="side-status-width"
 
 line="$(bar_option line 1)"
 mode="$(bar_option cross_session inline)"
-position="$(bar_option position status)"
+position="$(bar_option position left)"
 
 # Capability probe: setting the side-status option IS the probe — on stock
 # tmux it fails and we fall back to the status-line bar. AGENT_BAR_FORCE

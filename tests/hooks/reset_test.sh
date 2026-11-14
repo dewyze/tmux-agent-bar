@@ -40,5 +40,11 @@ for opt in @agent_state @agent_app @agent_transcript @agent_asker @agent_session
 done
 assert_eq "" "$(tmux_t show-options -pv -t "$pane_b" @agent_state 2>/dev/null)" "@agent_state cleared on pane_b"
 
-assert_eq "2" "$(tmux_t show-options -gv status)" "bar reapplied"
+# The bar comes back: the side bar, or the status-line bar on a tmux
+# without one.
+if tmux_t show-options -gv side-status >/dev/null 2>&1; then
+  assert_eq "left" "$(tmux_t show-options -gv side-status)" "side bar reapplied"
+else
+  assert_eq "2" "$(tmux_t show-options -gv status)" "bar reapplied"
+fi
 [ "$(tmux_t list-keys | grep -c mouse_status_range)" -ge 2 ] || fail "bindings reapplied"

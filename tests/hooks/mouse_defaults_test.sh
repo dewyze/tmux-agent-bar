@@ -21,6 +21,8 @@ export PATH="$TEST_TMP/bin:$PATH"
 unset TMUX
 
 tmux_t new-session -d -x 80 -y 24
+# The status-line bar: the default is the side bar.
+tmux_t set-option -g @agent_bar_position status
 bash "$ROOT_DIR/agent-bar.tmux"
 
 left="$(tmux_t list-keys -T root | grep "MouseDown1Status")"
@@ -43,6 +45,6 @@ SHIM
 tmux_2 new-session -d -x 80 -y 24
 tmux_2 set-option -g @agent_bar_mouse off
 bash "$ROOT_DIR/agent-bar.tmux"
+assert_not_contains "$(tmux_2 list-keys -T root)" "mouse_status_range" "mouse off binds no badge clicks"
 off_left="$(tmux_2 list-keys -T root | grep "MouseDown1Status")"
-assert_not_contains "$off_left" "mouse_status_range" "mouse off leaves left-click alone"
 assert_contains "$off_left" "switch-client -t =" "stock default untouched"

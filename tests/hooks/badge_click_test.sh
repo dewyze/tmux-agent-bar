@@ -25,6 +25,8 @@ SHIM
 chmod +x "$TEST_TMP/bin/tmux"
 
 tmux_i new-session -d -s work -n api -x 90 -y 24
+# The status-line bar: the default is the side bar.
+tmux_i set-option -g @agent_bar_position status
 tmux_i new-session -d -s home -n notes -x 90 -y 24
 tmux_i split-window -d -t home:notes
 tmux_i new-window -d -t home -n misc

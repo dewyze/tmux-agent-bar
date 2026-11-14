@@ -19,6 +19,8 @@ chmod +x "$TEST_TMP/bin/tmux"
 export PATH="$TEST_TMP/bin:$PATH"
 
 tmux_t new-session -d -s work -n api -x 80 -y 24
+# The status-line bar: the default is the side bar.
+tmux_t set-option -g @agent_bar_position status
 tmux_t new-session -d -s home -n notes -x 80 -y 24
 tmux_t split-window -d -t work:api
 

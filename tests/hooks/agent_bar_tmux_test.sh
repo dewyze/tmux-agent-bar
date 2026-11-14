@@ -38,7 +38,13 @@ run_plugin() {
   bash "$ROOT_DIR/agent-bar.tmux"
 }
 
-# Default single status line -> raised to 2, format installed, bindings bound
+# No position set: the side bar, on the left
+run_plugin "on"
+assert_contains "$(cat "$STUB_LOG")" "set-option -g side-status left" "side bar by default"
+
+# Position status, single status line -> raised to 2, format installed,
+# bindings bound
+printf 'status' > "$POSITION_FILE"
 run_plugin "on"
 log="$(cat "$STUB_LOG")"
 assert_contains "$log" "set-option -g status 2" "status raised to 2"
@@ -104,7 +110,9 @@ assert_contains "$b" "bind-key -n MouseDown3SideStatus " "side-mode right-click 
 assert_not_contains "$b" "MouseDown1Status" "side mode leaves status-line clicks alone"
 assert_contains "$b" "switch-client -t '#{mouse_status_range}'" "side-mode bindings present"
 
-# Stock tmux (probe fails): falls back to the status-line bar
+# Stock tmux (probe fails), no position set: falls back to the status-line
+# bar
+rm -f "$POSITION_FILE"
 touch "$SIDE_FAIL"
 run_plugin "on"
 log="$(cat "$STUB_LOG")"

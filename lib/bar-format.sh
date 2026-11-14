@@ -21,7 +21,7 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 
 part="${1:-}"
 theme="$(bar_option theme ascii)"
-position="${AGENT_BAR_FORCE_POSITION:-$(bar_option position status)}"
+position="${AGENT_BAR_FORCE_POSITION:-$(bar_option position left)}"
 mode="$(bar_option cross_session inline)"
 
 # Separator hierarchy, all visible characters — spaces are not separators:

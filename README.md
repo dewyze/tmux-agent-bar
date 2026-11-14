@@ -46,7 +46,6 @@ With [TPM](https://github.com/tmux-plugins/tpm), add to `tmux.conf`:
 
 ```tmux
 set -g mouse on
-set -g @agent_bar_position left
 set -g @plugin 'dewyze/tmux-agent-bar'
 ```
 
@@ -58,12 +57,11 @@ git clone https://github.com/dewyze/tmux-agent-bar ~/.tmux/plugins/tmux-agent-ba
 
 ```tmux
 set -g mouse on
-set -g @agent_bar_position left
 run-shell ~/.tmux/plugins/tmux-agent-bar/agent-bar.tmux
 ```
 
-`mouse on` is only needed for clicking. Use `right` to put the bar on the
-other side.
+`mouse on` is only needed for clicking. The bar goes on the left; see
+[Configuration](#configuration) to move it.
 
 ### 3. Hooks for your agent
 
@@ -200,8 +198,12 @@ explains the design in more detail.
 ## Bottom bar
 
 The plugin can also draw the agents on a second status line at the
-bottom. This works on released tmux (3.2 and newer). It is what you get
-if you leave out `@agent_bar_position`, or if your tmux has no side bar.
+bottom. This works on released tmux (3.2 and newer). You get it by asking
+for it, or automatically when your tmux has no side bar.
+
+```tmux
+set -g @agent_bar_position status
+```
 
 ```
 [0] 0:vim  1:api*                                          14:23
@@ -225,7 +227,7 @@ Then reload your `tmux.conf`, or run `./scripts/reset.sh`.
 
 | Option | Default | What it does |
 |---|---|---|
-| `@agent_bar_position` | `status` | `left` or `right` for the side bar. `status` is the bottom bar. |
+| `@agent_bar_position` | `left` | Side of the screen: `left` or `right`. `status` is the bottom bar. |
 | `@agent_bar_width` | `24` | Width of the side bar, in columns. |
 | `@agent_bar_cross_session` | `inline` | `off` shows only the session you are in. |
 

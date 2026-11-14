@@ -14,6 +14,8 @@ trap 'tmux_o kill-server 2>/dev/null; tmux_i kill-server 2>/dev/null; rm -rf "$T
 unset TMUX
 
 tmux_i new-session -d -s work -n api -x 90 -y 24
+# The status-line bar: the default is the side bar.
+tmux_i set-option -g @agent_bar_position status
 pane="$(tmux_i display-message -p -t work:api '#{pane_id}')"
 tmux_i set-option -g status 2
 mkdir -p "$TEST_TMP/bin"

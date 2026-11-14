@@ -27,7 +27,7 @@ shown() { tmux_t display-message -p "$(bash "$ROOT_DIR/lib/bar-format.sh")" | se
 
 # Glyph override
 tmux_t set-option -g @agent_bar_glyph_running "R"
-assert_contains "$(shown)" "│ R" "glyph override"
+assert_contains "$(shown)" "    R" "glyph override"
 tmux_t set-option -gu @agent_bar_glyph_running
 
 # Badge text truncation via name_max
@@ -43,21 +43,6 @@ tmux_t set-option -g @agent_bar_label_suffix ":"
 assert_contains "$(shown)" "api:" "label suffix"
 tmux_t set-option -gu @agent_bar_label_suffix
 
-# Pane separator override
-tmux_t set-option -g @agent_bar_pane_separator " >> "
-assert_contains "$(shown)" "api >> *" "pane separator override"
-tmux_t set-option -gu @agent_bar_pane_separator
-
-# Nerdfont theme swaps in powerline dividers. The glyphs are PUA chars
-# that tooling can silently drop, so build them from bytes and refuse a
-# vacuous empty pattern (this exact test once passed asserting "").
-powerline_thin="$(printf '\xee\x82\xb1')"
-[ -n "$powerline_thin" ] || fail "powerline glyph construction failed"
-tmux_t set-option -g @agent_bar_theme nerdfont
-assert_contains "$(shown)" "$powerline_thin" "nerdfont thin divider"
-assert_not_contains "$(shown)" "│" "ascii divider replaced"
-tmux_t set-option -gu @agent_bar_theme
-
 # Session marker override (no client in this context -> session is foreign)
 assert_contains "$(shown)" "▌ work" "default session marker"
 tmux_t set-option -g @agent_bar_session_marker " >S "
@@ -72,3 +57,21 @@ case "$raw" in
   *) fail "accent option not applied: $raw" ;;
 esac
 tmux_t set-option -gu @agent_bar_accent
+
+# The rest only shape the status-line bar.
+tmux_t set-option -g @agent_bar_position status
+
+# Pane separator override
+tmux_t set-option -g @agent_bar_pane_separator " >> "
+assert_contains "$(shown)" "api >> *" "pane separator override"
+tmux_t set-option -gu @agent_bar_pane_separator
+
+# Nerdfont theme swaps in powerline dividers. The glyphs are PUA chars
+# that tooling can silently drop, so build them from bytes and refuse a
+# vacuous empty pattern (this exact test once passed asserting "").
+powerline_thin="$(printf '\xee\x82\xb1')"
+[ -n "$powerline_thin" ] || fail "powerline glyph construction failed"
+tmux_t set-option -g @agent_bar_theme nerdfont
+assert_contains "$(shown)" "$powerline_thin" "nerdfont thin divider"
+assert_not_contains "$(shown)" "│" "ascii divider replaced"
+tmux_t set-option -gu @agent_bar_theme
