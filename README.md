@@ -263,6 +263,10 @@ directory.
 | `@agent_bar_style_window` | `fg=colour243` | Style of window names. |
 | `@agent_bar_style_window_active` | `fg=colour250 bold` | Style of the current window's name. |
 | `@agent_bar_accent` | `colour109` | Colour of session names. |
+| `@agent_bar_style_session` | unset | Style of session names, in place of the accent. With a `bg=` in it the name becomes a filled block and loses its mark. |
+| `@agent_bar_guide` | unset | A character, such as `│`, drawn down the left of the rows under a session name. |
+| `@agent_bar_divider_fg` | `colour240` | Colour of the guide. |
+| `@agent_bar_theme` | `ascii` | `nerdfont` gives filled names a pointed end. Needs a [Nerd Font](https://www.nerdfonts.com). |
 
 Styles use tmux's style syntax, with spaces between parts and no commas.
 
@@ -303,12 +307,12 @@ bind-key A command-prompt -I '#{@agent_name}' -p 'Agent name:' { set-option -p @
 | Option | Default | What it does |
 |---|---|---|
 | `@agent_bar_line` | `1` | Which status line the bar takes. |
-| `@agent_bar_theme` | `ascii` | `nerdfont` uses powerline dividers. |
+| `@agent_bar_theme` | `ascii` | `nerdfont` also swaps the separators for powerline dividers. |
 | `@agent_bar_pane_separator` | ` │ ` | Between agents in a window. |
 | `@agent_bar_group_separator` | ` ║ ` | In front of each window. |
 | `@agent_bar_cross_session` | `inline` | `line` puts other sessions on a line of their own. |
 | `@agent_bar_status_bg` | unset | Status line background, for powerline segments. |
-| `@agent_bar_divider_fg` | `colour240` | Colour of the thin dividers. |
+| `@agent_bar_divider_fg` | `colour240` | Also the colour of the thin dividers. |
 
 ### Debugging
 

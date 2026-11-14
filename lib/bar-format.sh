@@ -169,21 +169,43 @@ if [ "$position" != "status" ]; then
   v_pad="$(bar_option padding 1)"
   [[ "$v_pad" =~ ^[0-9]+$ ]] || v_pad=1
   v_pad="$(printf "%${v_pad}s" '')"
+  # @agent_bar_theme nerdfont: a filled name ends in a point of its fill
+  # colour ($1), drawn on the bar's own background.
+  v_tip() {
+    [ "$theme" = nerdfont ] && [ -n "$1" ] && printf '#[default]#[fg=%s]%s' "$1" "$powerline_filled"
+  }
   # $3 is the viewing session's list focus; without it the row belongs to
-  # another session, whose current window is not where the viewer is and
-  # takes the plain window style.
+  # another session, whose current window is not where the viewer is: it
+  # takes the plain window style and no point.
   v_window() {
-    local style="#[${style_window}]"
-    [ -n "$3" ] && style="$wstyle"
-    printf '%s%s%s#[range=user|#{window_id}]%s#{window_name}%s%s#[norange]#[default]#[list=on]#[nl]#{P:%s}' "$1" "$3" "$style" "${v_pad}" "${label_suffix}" "${v_pad}" "$(v_badge "$2")"
+    local style="#[${style_window}]" tip=""
+    if [ -n "$3" ]; then
+      style="$wstyle"
+      tip="$(v_tip "$bg_active")"
+      [ -n "$tip" ] && tip="#{?window_active,${tip},}"
+    fi
+    printf '%s%s%s#[range=user|#{window_id}]%s#{window_name}%s%s#[norange]%s#[default]#[list=on]#[nl]#{P:%s}' "$1" "$3" "$style" "${v_pad}" "${label_suffix}" "${v_pad}" "$tip" "$(v_badge "$2")"
+  }
+  # A session's header row. $1: extra style for the name (bold, for the
+  # viewing session). @agent_bar_style_session styles the name; with a fill
+  # in it the name is a padded block and the session mark is dropped.
+  style_session="$(bar_option style_session '')"
+  bg_session="$(bg_of "$style_session")"
+  v_header() {
+    if [ -n "$bg_session" ]; then
+      printf '#[%s%s]#[range=user|#{session_id}]%s#{session_name}%s#[norange]%s#[default]#[nl]' "$style_session" "$1" "$v_pad" "$v_pad" "$(v_tip "$bg_session")"
+    else
+      printf '#[fg=%s bold]%s#[default]#[%s%s]#[range=user|#{session_id}]#{session_name}#[norange]#[default]#[nl]' "$accent" "$session_marker" "${style_session:-fg=${accent}}" "$1"
+    fi
   }
   # A session's rows under its header: windows indent 2, their panes 4.
-  # $1: extra style for the header's name, $2: per-window prefix (the list
-  # focus, for the viewing session).
-  v_header() { printf '#[fg=%s bold]%s#[default]#[fg=%s%s]#[range=user|#{session_id}]#{session_name}#[norange]#[default]#[nl]' "$accent" "$session_marker" "$accent" "$1"; }
+  # @agent_bar_guide puts a line (in the divider colour) in that indent.
+  v_in='  '
+  v_guide="$(bar_option guide '')"
+  [ -n "$v_guide" ] && v_in=" #[fg=${divider_fg}]${v_guide}#[default]"
   v_flat_row="$(v_window '' '  ' "$v_focus")"
-  v_local_row="$(v_window '  ' '    ' "$v_focus")"
-  v_foreign_row="$(v_window '  ' '    ' '')"
+  v_local_row="$(v_window "$v_in" "${v_in}  " "$v_focus")"
+  v_foreign_row="$(v_window "$v_in" "${v_in}  " '')"
   v_empty=""
   if [ "$(bar_option windows agents)" = "all" ]; then
     # Headers appear once a second session exists.
