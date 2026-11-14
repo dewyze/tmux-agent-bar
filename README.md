@@ -63,6 +63,11 @@ run-shell ~/.tmux/plugins/tmux-agent-bar/agent-bar.tmux
 `mouse on` is only needed for clicking. The bar goes on the left; see
 [Configuration](#configuration) to move it.
 
+The commands in the rest of this page assume the plugin is in
+`~/.tmux/plugins/tmux-agent-bar`, which is where both ways above put it.
+If your TPM keeps plugins somewhere else, such as
+`~/.config/tmux/plugins`, use that path.
+
 ### 3. Hooks for your agent
 
 The bar only shows agents that report to it. Set up the ones you use.
@@ -78,7 +83,7 @@ If you would rather not use Claude plugins, this script adds the same
 hooks to `~/.claude/settings.json` and keeps a backup:
 
 ```sh
-./scripts/install-claude-hooks.sh
+~/.tmux/plugins/tmux-agent-bar/scripts/install-claude-hooks.sh
 ```
 
 Use one or the other. With both, every event is reported twice. Restart
@@ -87,7 +92,7 @@ your Claude sessions afterwards.
 **Codex CLI.**
 
 ```sh
-./scripts/install-codex-hooks.sh
+~/.tmux/plugins/tmux-agent-bar/scripts/install-codex-hooks.sh
 ```
 
 This adds the hooks to `~/.codex/hooks.json` and keeps a backup. Then two
@@ -124,7 +129,7 @@ installed the Claude Code plugin, also run
 `claude plugin update tmux-agent-bar`. Then:
 
 ```sh
-./scripts/reset.sh
+~/.tmux/plugins/tmux-agent-bar/scripts/reset.sh
 ```
 
 It clears all badges and reloads the bar. Restart your agents after that.
@@ -221,7 +226,8 @@ Options are tmux options. Set them in `tmux.conf` above the plugin line:
 set -g @agent_bar_width 30
 ```
 
-Then reload your `tmux.conf`, or run `./scripts/reset.sh`.
+Then reload your `tmux.conf`, or run `scripts/reset.sh` from the plugin
+directory.
 
 ### Layout
 
@@ -265,7 +271,7 @@ set -g side-status-style "bg=colour236,fg=colour254"
 To make the bar match the status line you already have, run:
 
 ```sh
-./scripts/adopt-theme.sh
+~/.tmux/plugins/tmux-agent-bar/scripts/adopt-theme.sh
 ```
 
 It copies your status line's colours onto the bar and prints the lines to
