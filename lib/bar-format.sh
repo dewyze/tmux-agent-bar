@@ -157,7 +157,14 @@ if [ "$position" != "status" ]; then
   v_pad="$(bar_option padding 1)"
   [[ "$v_pad" =~ ^[0-9]+$ ]] || v_pad=1
   v_pad="$(printf "%${v_pad}s" '')"
-  v_window() { printf '%s%s%s#[range=user|#{window_id}]%s#{window_name}%s%s#[norange]#[default]#[list=on]#[nl]#{P:%s}' "$1" "$3" "${wstyle}" "${v_pad}" "${label_suffix}" "${v_pad}" "$(v_badge "$2")"; }
+  # $3 is the viewing session's list focus; without it the row belongs to
+  # another session, whose current window is not where the viewer is and
+  # takes the plain window style.
+  v_window() {
+    local style="#[${style_window}]"
+    [ -n "$3" ] && style="$wstyle"
+    printf '%s%s%s#[range=user|#{window_id}]%s#{window_name}%s%s#[norange]#[default]#[list=on]#[nl]#{P:%s}' "$1" "$3" "$style" "${v_pad}" "${label_suffix}" "${v_pad}" "$(v_badge "$2")"
+  }
   # A session's rows under its header: windows indent 2, their panes 4.
   # $1: extra style for the header's name, $2: per-window prefix (the list
   # focus, for the viewing session).

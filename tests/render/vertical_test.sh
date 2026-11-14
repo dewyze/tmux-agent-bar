@@ -67,6 +67,17 @@ assert_contains "$out" "#[range=user|$work_id]" "viewing session header is click
 assert_contains "$out" "#[nl]    #[range=user|$local_pane]" "local pane 4-space indent under a header"
 assert_contains "$out" "#[nl]    #[range=user|$foreign_pane]" "foreign pane 4-space indent"
 
+# "You are here" appears once: the viewing session's current window takes
+# the active style. Another session's current window is just a window.
+tmux_t set-option -g @agent_bar_style_window "fg=colour1"
+tmux_t set-option -g @agent_bar_style_window_active "fg=colour2"
+styled="$(tmux_t display-message -p -c "$client" "$(bash "$ROOT_DIR/lib/bar-format.sh")")"
+web_id="$(tmux_t display-message -p -t blog:web '#{window_id}')"
+assert_contains "$styled" "#[fg=colour2]#[range=user|$win_id]" "viewing session's current window is active-styled"
+assert_contains "$styled" "#[fg=colour1]#[range=user|$web_id]" "another session's current window is not"
+tmux_t set-option -gu @agent_bar_style_window
+tmux_t set-option -gu @agent_bar_style_window_active
+
 # Agents in the viewing session only: no header, windows flat with 2-space
 # pane rows
 tmux_t set-option -pu -t "$foreign_pane" @agent_state
