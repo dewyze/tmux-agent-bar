@@ -136,9 +136,9 @@ compact_foreign="#{?${session_has_agents},${session_intro}#{W:#{P:${compact_glyp
 # rows, an accent header row per foreign session. No horizontal separators
 # or segments; the side bar has its own affordances.
 if [ "$position" != "status" ]; then
-  # Hierarchy indent: local windows sit flat (no header above them), their
-  # panes at 2 spaces; foreign windows indent 2 under their session header,
-  # their panes 4.
+  # Hierarchy indent: with one session on the bar, its windows sit flat
+  # and their panes at 2 spaces. With several, every session has a header
+  # row, its windows indent 2 under it and their panes 4.
   # @agent_bar_windows agents (the default) lists only windows with an
   # agent, and only foreign sessions with one; when there is none the bar
   # says so, or it would look switched off. `all` lists every window and
@@ -158,16 +158,26 @@ if [ "$position" != "status" ]; then
   [[ "$v_pad" =~ ^[0-9]+$ ]] || v_pad=1
   v_pad="$(printf "%${v_pad}s" '')"
   v_window() { printf '%s%s%s#[range=user|#{window_id}]%s#{window_name}%s%s#[norange]#[default]#[list=on]#[nl]#{P:%s}' "$1" "$3" "${wstyle}" "${v_pad}" "${label_suffix}" "${v_pad}" "$(v_badge "$2")"; }
-  v_local_row="$(v_window '' '  ' "$v_focus")"
+  # A session's rows under its header: windows indent 2, their panes 4.
+  # $1: extra style for the header's name, $2: per-window prefix (the list
+  # focus, for the viewing session).
+  v_header() { printf '#[fg=%s bold]%s#[default]#[fg=%s%s]#[range=user|#{session_id}]#{session_name}#[norange]#[default]#[nl]' "$accent" "$session_marker" "$accent" "$1"; }
+  v_flat_row="$(v_window '' '  ' "$v_focus")"
+  v_local_row="$(v_window '  ' '    ' "$v_focus")"
   v_foreign_row="$(v_window '  ' '    ' '')"
-  v_header="#[fg=${accent} bold]${session_marker}#[default]#[fg=${accent}]#[range=user|#{session_id}]#{session_name}#[norange]#[default]#[nl]"
   v_empty=""
   if [ "$(bar_option windows agents)" = "all" ]; then
-    v_foreign="${v_header}#{W:${v_foreign_row}}"
+    # Headers appear once a second session exists.
+    several='#{>:#{server_sessions},1}'
+    v_local="$(v_header ' bold')#{W:${v_local_row}}"
+    v_foreign="$(v_header '')#{W:${v_foreign_row}}"
   else
     window_has_agents='#{P:#{?#{@agent_state},x,}}'
-    v_local_row="#{?${window_has_agents},${v_local_row},}"
-    v_foreign="#{?${session_has_agents},${v_header}#{W:#{?${window_has_agents},${v_foreign_row},}},}"
+    # Headers appear once another session has an agent to list.
+    several="#{S:#{?${is_local},,${session_has_agents}}}"
+    v_flat_row="#{?${window_has_agents},${v_flat_row},}"
+    v_local="#{?${session_has_agents},$(v_header ' bold')#{W:#{?${window_has_agents},${v_local_row},}},}"
+    v_foreign="#{?${session_has_agents},$(v_header '')#{W:#{?${window_has_agents},${v_foreign_row},}},}"
     # The note looks where the bar looks: this session, or every session.
     if [ "$mode" = "off" ]; then
       any_agents="$session_has_agents"
@@ -176,11 +186,12 @@ if [ "$position" != "status" ]; then
     fi
     v_empty="#{?${any_agents},,#[fg=colour243]no agents#[default]#[nl]}"
   fi
-  v_windows_local="#{W:${v_local_row}}"
+  # With one session on the bar its windows sit flat, with no header. With
+  # several, every session gets one, the viewing session's in bold.
   if [ "$mode" = "off" ]; then
-    printf '%s%s#{S:#{?%s,%s,}}' "$v_list" "$v_empty" "$is_local" "$v_windows_local"
+    printf '%s%s#{S:#{?%s,#{W:%s},}}' "$v_list" "$v_empty" "$is_local" "$v_flat_row"
   else
-    printf '%s%s#{S:#{?%s,%s,%s}}' "$v_list" "$v_empty" "$is_local" "$v_windows_local" "$v_foreign"
+    printf '%s%s#{S:#{?%s,#{?%s,%s,#{W:%s}},%s}}' "$v_list" "$v_empty" "$is_local" "$several" "$v_local" "$v_flat_row" "$v_foreign"
   fi
   exit 0
 fi

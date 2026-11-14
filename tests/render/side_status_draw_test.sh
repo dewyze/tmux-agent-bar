@@ -64,23 +64,24 @@ assert_row() {
 # badge under its window, then the foreign session's header and windows.
 # The edge line sits in column 25: @agent_bar_width 24, plus one.
 wait_for "* claude"
-assert_row 1 " api                    │" "window row"
-assert_row 2 "  * claude              │" "badge row"
-assert_row 3 " web                    │" "agent-less window row"
-assert_row 4 " ▌ blog                 │" "foreign session header row"
-assert_row 5 "   docs                 │" "foreign window row"
+assert_row 1 " ▌ work                 │" "viewing session header row"
+assert_row 2 "   api                  │" "window row"
+assert_row 3 "    * claude            │" "badge row"
+assert_row 4 "   web                  │" "agent-less window row"
+assert_row 5 " ▌ blog                 │" "foreign session header row"
+assert_row 6 "   docs                 │" "foreign window row"
 
 # A state change redraws the bar without any explicit refresh
 tmux_i set-option -p -t "$pane" @agent_state needs-input
 wait_for "? claude"
-assert_row 2 "  ? claude              │" "redraw on state change"
+assert_row 3 "    ? claude            │" "redraw on state change"
 
 # Overflow: more rows than the bar's 11 keeps the current window visible,
 # with markers on the first and last rows for the rows hidden above and below
 for i in $(seq 2 20); do tmux_i new-window -d -t work -n "w$i"; done
 tmux_i select-window -t work:w12
 wait_for "↑"
-grep -q '^ w12 ' <<<"$captured" || fail "current window row not visible: $captured"
+grep -q '^   w12 ' <<<"$captured" || fail "current window row not visible: $captured"
 assert_row 1 "↑" "more-above marker"
 assert_row 11 "↓" "more-below marker"
 
@@ -89,8 +90,8 @@ assert_row 11 "↓" "more-below marker"
 # current window (w12) gives way to it
 tmux_i new-session -d -s zed -n zz
 tmux_i switch-client -c "$(tmux_i list-clients -F '#{client_name}')" -t zed
-wait_for " ▌ work"
-grep -q '^ zz ' <<<"$captured" || fail "viewing session's window not visible: $captured"
+wait_for "   zz "
+grep -q '^   zz ' <<<"$captured" || fail "viewing session's window not visible: $captured"
 
 # The default lists only windows with an agent; with none, the bar says so
 tmux_i switch-client -c "$(tmux_i list-clients -F '#{client_name}')" -t work

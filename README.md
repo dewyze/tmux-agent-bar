@@ -147,8 +147,9 @@ It clears all badges and reloads the bar. Restart your agents after that.
 ## The bar
 
 The bar lists the windows that have an agent in them, with each agent
-under its window. Agents in other sessions are grouped under the session's
-name. With no agents running it just says "no agents".
+under its window. When agents are running in more than one session, each
+session's windows are grouped under its name. With no agents running it
+just says "no agents".
 
 | Badge | Meaning |
 |---|---|
