@@ -78,6 +78,11 @@ click() {
   tmux_o send-keys -l $'\e[<'"$1;$col;24M"$'\e[<'"$1;$col;24m"
 }
 
+# The inner client attaches in the background: wait for it, or the first
+# switch-client finds no client.
+wait_client work '#{client_session}'
+[ "$(client '#{client_session}')" = work ] || fail "the inner client never attached"
+
 # Badge: the agent's session, window and pane
 reset_view
 click 0 "?"
