@@ -79,3 +79,21 @@ tmux_t set -g status-left "#[bg=colour109] #S "
 bash "$ROOT_DIR/scripts/adopt-theme.sh" >/dev/null
 assert_eq "colour109" "$(tmux_t show -gv @agent_bar_accent)" "accent still inferred"
 assert_eq "" "$(tmux_t show -gqv @agent_bar_style_session)" "no session block without a text colour"
+
+# A colour that is a tmux conditional cannot be copied: the script skips
+# what it cannot read and still applies the rest
+tmux_t set -gu @agent_bar_accent
+tmux_t set -gu @agent_bar_style_session
+tmux_t set -g status-style "bg=colour236,fg=colour254"
+tmux_t set -g status-left "#[fg=colour235,bg=#{?client_prefix,#f0c674,colour109},bold] #S #[fg=#{?client_prefix,#f0c674,colour109},bg=colour236]"
+out="$(bash "$ROOT_DIR/scripts/adopt-theme.sh")"
+assert_eq "" "$(tmux_t show -gqv @agent_bar_accent)" "no accent from a conditional colour"
+assert_eq "" "$(tmux_t show -gqv @agent_bar_style_session)" "no session block from a conditional colour"
+assert_not_contains "$out" "#{" "nothing conditional in the printed lines"
+assert_eq "bg=colour236,fg=colour254" "$(tmux_t show -gv side-status-style)" "the rest is still applied"
+
+# The same in a window format: no window style is taken from it
+tmux_t set -gu @agent_bar_style_window
+tmux_t setw -g window-status-format "#[fg=#{?window_bell_flag,red,colour254},bg=colour236] #I #W "
+bash "$ROOT_DIR/scripts/adopt-theme.sh" >/dev/null
+assert_eq "" "$(tmux_t show -gqv @agent_bar_style_window)" "no window style from a conditional colour"

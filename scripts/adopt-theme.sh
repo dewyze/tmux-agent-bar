@@ -28,20 +28,34 @@ fmt, mode = sys.argv[1], sys.argv[2]
 if mode == "block":
     fmt = fmt.split("#I")[0]
 blocks = re.findall(r"#\[([^\]]*)\]", fmt)
+# A colour written out: a name, colourN, or #rrggbb. A colour that is a
+# tmux conditional (#{?...}) changes as tmux runs and cannot be copied.
+plain = re.compile(r"(colou?r[0-9]{1,3}|#[0-9a-fA-F]{6}|[a-z]+)$")
+
+
+def usable(*colours):
+    return all(c and plain.match(c[3:]) for c in colours)
+
+
 for block in (reversed(blocks) if mode == "block" else blocks):
     tokens = re.split(r"[,\s]+", block)
     fg = next((t for t in tokens if t.startswith("fg=")), None)
     bg = next((t for t in tokens if t.startswith("bg=")), None)
+    # The first block that has the colours asked for is the answer. If
+    # they cannot be copied there is no answer: a later block is a
+    # different part of the status line.
     if mode == "accent" and bg:
-        print(bg[3:])
+        if usable(bg):
+            print(bg[3:])
         break
     if mode == "session":
         # Only the first block counts: the one the session name sits in.
-        if fg and bg:
+        if usable(fg, bg):
             print(" ".join([fg, bg] + (["bold"] if "bold" in tokens else [])))
         break
     if mode == "block" and fg and bg:
-        print(f"{fg} {bg}")
+        if usable(fg, bg):
+            print(f"{fg} {bg}")
         break
 PY
 }
