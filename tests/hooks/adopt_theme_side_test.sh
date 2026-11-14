@@ -80,20 +80,39 @@ bash "$ROOT_DIR/scripts/adopt-theme.sh" >/dev/null
 assert_eq "colour109" "$(tmux_t show -gv @agent_bar_accent)" "accent still inferred"
 assert_eq "" "$(tmux_t show -gqv @agent_bar_style_session)" "no session block without a text colour"
 
-# A colour that is a tmux conditional cannot be copied: the script skips
-# what it cannot read and still applies the rest
+# A colour that is a tmux conditional: tmux is asked what it comes to right
+# now, and that is the colour copied
 tmux_t set -gu @agent_bar_accent
 tmux_t set -gu @agent_bar_style_session
 tmux_t set -g status-style "bg=colour236,fg=colour254"
 tmux_t set -g status-left "#[fg=colour235,bg=#{?client_prefix,#f0c674,colour109},bold] #S #[fg=#{?client_prefix,#f0c674,colour109},bg=colour236]"
 out="$(bash "$ROOT_DIR/scripts/adopt-theme.sh")"
-assert_eq "" "$(tmux_t show -gqv @agent_bar_accent)" "no accent from a conditional colour"
-assert_eq "" "$(tmux_t show -gqv @agent_bar_style_session)" "no session block from a conditional colour"
+assert_eq "colour109" "$(tmux_t show -gqv @agent_bar_accent)" "accent from a conditional colour"
+assert_eq "fg=colour235 bg=colour109 bold" "$(tmux_t show -gqv @agent_bar_style_session)" "session block from a conditional colour"
 assert_not_contains "$out" "#{" "nothing conditional in the printed lines"
-assert_eq "bg=colour236,fg=colour254" "$(tmux_t show -gv side-status-style)" "the rest is still applied"
 
-# The same in a window format: no window style is taken from it
+# The same in a window format
 tmux_t set -gu @agent_bar_style_window
 tmux_t setw -g window-status-format "#[fg=#{?window_bell_flag,red,colour254},bg=colour236] #I #W "
 bash "$ROOT_DIR/scripts/adopt-theme.sh" >/dev/null
-assert_eq "" "$(tmux_t show -gqv @agent_bar_style_window)" "no window style from a conditional colour"
+assert_eq "fg=colour254 bg=colour236" "$(tmux_t show -gqv @agent_bar_style_window)" "window style from a conditional colour"
+
+# A colour tmux cannot make sense of is skipped, and the rest still applied
+tmux_t set -gu @agent_bar_accent
+tmux_t set -gu @agent_bar_style_session
+tmux_t set -gu side-status-style
+tmux_t set -g status-left "#[fg=colour235,bg=#{@no_such_option},bold] #S "
+bash "$ROOT_DIR/scripts/adopt-theme.sh" >/dev/null
+assert_eq "" "$(tmux_t show -gqv @agent_bar_accent)" "no accent from an empty colour"
+assert_eq "" "$(tmux_t show -gqv @agent_bar_style_session)" "no session block from an empty colour"
+assert_eq "bg=colour236,fg=colour254" "$(tmux_t show -gv side-status-style)" "the rest is still applied"
+
+# The accent has to show against the bar: a fill that is the status line's
+# own background (a powerline transition) is passed over
+tmux_t set -gu @agent_bar_accent
+tmux_t set -g status-left "#[fg=colour109] #S #[fg=colour109,bg=colour236]"
+bash "$ROOT_DIR/scripts/adopt-theme.sh" >/dev/null
+assert_eq "" "$(tmux_t show -gqv @agent_bar_accent)" "the bar's own background is no accent"
+tmux_t set -g status-left "#[fg=colour109,bg=colour236] #S #[fg=colour235,bg=colour109] x "
+bash "$ROOT_DIR/scripts/adopt-theme.sh" >/dev/null
+assert_eq "colour109" "$(tmux_t show -gqv @agent_bar_accent)" "the first fill that stands out is the accent"

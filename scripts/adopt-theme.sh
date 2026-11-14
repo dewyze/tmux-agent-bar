@@ -19,17 +19,24 @@ set -euo pipefail
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 
-infer() { # $1: format string, $2: mode (block|accent|session)
-  python3 - "$1" "$2" <<'PY'
+infer() { # $1: format string, $2: mode (block|accent|session), $3: status background
+  python3 - "$1" "$2" "${3:-}" <<'PY'
 import re
+import subprocess
 import sys
 
-fmt, mode = sys.argv[1], sys.argv[2]
+fmt, mode, status_bg = sys.argv[1], sys.argv[2], sys.argv[3]
 if mode == "block":
     fmt = fmt.split("#I")[0]
+# A colour can be a tmux conditional (#{?...}). tmux is asked what the
+# format comes to right now; style blocks pass through it untouched.
+if "#{" in fmt:
+    fmt = subprocess.run(
+        ["tmux", "display-message", "-p", fmt], capture_output=True, text=True
+    ).stdout
 blocks = re.findall(r"#\[([^\]]*)\]", fmt)
-# A colour written out: a name, colourN, or #rrggbb. A colour that is a
-# tmux conditional (#{?...}) changes as tmux runs and cannot be copied.
+# A colour written out: a name, colourN, or #rrggbb. Anything else (tmux
+# could not work it out) is not copied.
 plain = re.compile(r"(colou?r[0-9]{1,3}|#[0-9a-fA-F]{6}|[a-z]+)$")
 
 
@@ -45,6 +52,10 @@ for block in (reversed(blocks) if mode == "block" else blocks):
     # they cannot be copied there is no answer: a later block is a
     # different part of the status line.
     if mode == "accent" and bg:
+        # The accent has to show against the bar: the status line's own
+        # background (a powerline transition block) is passed over.
+        if bg[3:] == status_bg:
+            continue
         if usable(bg):
             print(bg[3:])
         break
@@ -62,10 +73,10 @@ PY
 
 window="$(infer "$(tmux show -gv window-status-format 2>/dev/null || true)" block)"
 active="$(infer "$(tmux show -gv window-status-current-format 2>/dev/null || true)" block)"
-accent="$(infer "$(tmux show -gv status-left 2>/dev/null || true)" accent)"
-session="$(infer "$(tmux show -gv status-left 2>/dev/null || true)" session)"
 status_bg="$(tmux show -gv status-style 2>/dev/null | tr ', ' '\n\n' | sed -n 's/^bg=//p' | head -1)"
 [ -n "$status_bg" ] || status_bg="$(tmux show -gv status-bg 2>/dev/null || true)"
+accent="$(infer "$(tmux show -gv status-left 2>/dev/null || true)" accent "$status_bg")"
+session="$(infer "$(tmux show -gv status-left 2>/dev/null || true)" session)"
 
 # The side bar, when it is asked for and this tmux has one.
 . "$ROOT_DIR/lib/options.sh"
