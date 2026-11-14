@@ -178,10 +178,8 @@ Clicking:
 When the list is taller than the screen it scrolls, and keeps the current
 window in view.
 
-> **Screenshot to add:** the right-click menu open on a badge.
-
-> **Screenshot or GIF to add:** an agent going from `*` to `?`, then a
-> click that jumps to it.
+> **GIF to add:** an agent going from `*` to `?`, then a click that jumps
+> to it.
 
 ## How it works
 
