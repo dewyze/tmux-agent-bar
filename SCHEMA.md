@@ -26,9 +26,12 @@ every consumer reading via formats.
 | `@agent_writer_version` | no | producer's own version, for install-skew diagnosis |
 | `@agent_name` | no | **user-owned**: a stable human-assigned name for the pane's agent. Producers must never write or unset it; it survives agent restarts and dies with the pane |
 
-Consumers displaying a name use strict precedence: `@agent_name` →
-`@agent_app` → nothing. Pane titles and process commands are not part of
-the schema and should not be displayed as names.
+Consumers displaying a name use strict precedence: `@agent_name` → the
+pane's title, when the agent set one → `@agent_app` → nothing. The title
+is tmux's own `pane_title`, not part of the schema: agents such as Claude
+Code put their session's name there. A title equal to the host name is
+tmux's default and means no title was set. Process commands should not be
+displayed as names.
 
 ## State vocabulary (closed — new states require a schema version bump)
 

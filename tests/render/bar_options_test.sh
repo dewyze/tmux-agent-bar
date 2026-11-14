@@ -30,6 +30,39 @@ tmux_t set-option -g @agent_bar_glyph_running "R"
 assert_contains "$(shown)" "    R" "glyph override"
 tmux_t set-option -gu @agent_bar_glyph_running
 
+# An agent with no name of its own is listed by its pane title, which is
+# where Claude Code puts the session's name
+assert_contains "$(shown)" "* fixing the tests" "pane title names the agent"
+tmux_t select-pane -T "✳ LOBSTERS" -t "$pane"
+assert_contains "$(shown)" "* LOBSTERS" "a leading status glyph is dropped"
+assert_not_contains "$(shown)" "✳" "glyph gone"
+tmux_t set-option -g @agent_bar_name_max 4
+assert_contains "$(shown)" "* LOBS" "title cut at name_max"
+assert_not_contains "$(shown)" "LOBST" "long title cut"
+tmux_t set-option -gu @agent_bar_name_max
+
+# A program that sets no title leaves tmux's default, the host name: that
+# is no name, so the app name stands
+tmux_t set-option -p -t "$pane" @agent_app claude
+tmux_t select-pane -T "$(tmux_t display-message -p '#{host}')" -t "$pane"
+assert_contains "$(shown)" "* claude" "host name as title is ignored"
+tmux_t select-pane -T "$(tmux_t display-message -p '#{host_short}')" -t "$pane"
+assert_contains "$(shown)" "* claude" "short host name as title is ignored"
+
+# @agent_bar_title_names off: the app name, whatever the title
+tmux_t select-pane -T "✳ LOBSTERS" -t "$pane"
+tmux_t set-option -g @agent_bar_title_names off
+assert_contains "$(shown)" "* claude" "titles off: app name"
+assert_not_contains "$(shown)" "LOBSTERS" "titles off: no title"
+tmux_t set-option -gu @agent_bar_title_names
+
+# A name given by hand wins over the title
+tmux_t set-option -p -t "$pane" @agent_name "reviewer"
+assert_contains "$(shown)" "* reviewer" "hand-set name wins"
+assert_not_contains "$(shown)" "LOBSTERS" "title hidden behind the name"
+tmux_t set-option -pu -t "$pane" @agent_name
+tmux_t set-option -pu -t "$pane" @agent_app
+
 # Badge text truncation via name_max
 tmux_t set-option -p -t "$pane" @agent_name "reviewer"
 tmux_t set-option -g @agent_bar_name_max 3

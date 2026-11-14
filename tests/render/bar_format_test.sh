@@ -88,13 +88,15 @@ out="$(render)"
 assert_contains "$out" "#[range=user|$plain_pane]" "non-active pane badge"
 assert_eq "1" "$(shown | grep -o ' api ' | grep -c .)" "window label appears once"
 
-# Badge text precedence: our name -> harness name -> nothing. Pane
-# titles and commands never render.
+# Badge text precedence: our name -> the pane title an agent set ->
+# harness name -> nothing. The host name, tmux's default title, and
+# commands never render.
 tmux_t set-option -pu -t "$plain_pane" @agent_state
 tmux_t set-option -p -t "$agent_pane" @agent_state running
-tmux_t select-pane -T "fixing the tests" -t "$agent_pane"
-assert_not_contains "$(shown)" "fixing the tests" "pane title never renders"
 assert_not_contains "$(render)" "$(hostname)" "hostname never renders"
+tmux_t select-pane -T "fixing the tests" -t "$agent_pane"
+assert_contains "$(shown)" "api │ * fixing the tests" "a pane title names the agent"
+tmux_t select-pane -T "" -t "$agent_pane"
 
 tmux_t set-option -p -t "$agent_pane" @agent_app claude
 assert_contains "$(shown)" "api │ * claude" "harness name is the default"

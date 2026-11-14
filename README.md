@@ -167,8 +167,10 @@ A few things about how the badges behave:
 - `+` means "finished and you have not looked yet". It turns into `·` when
   you visit the pane, and it never shows for the pane you are looking at.
 - A badge goes away when its agent exits.
-- An agent is listed by its app name (`claude`, `codex`) until you give it
-  a name of your own.
+- An agent is listed by its session's name when it has one. Claude Code
+  titles each session and `/rename` changes it; the bar picks that up. A
+  name you give in the bar's menu wins over it. With neither, you see the
+  app name (`claude`, `codex`).
 
 Clicking:
 
@@ -249,6 +251,7 @@ directory.
 | `@agent_bar_glyph_error` | `!` | Badge for an error. |
 | `@agent_bar_glyph_idle` | `·` | Badge for an idle agent. |
 | `@agent_bar_name_max` | `24` | Longest agent name shown before it is cut. |
+| `@agent_bar_title_names` | `on` | `off` stops using an agent's session name; you see the app name. |
 | `@agent_bar_padding` | `1` | Spaces either side of a window name. |
 | `@agent_bar_label_suffix` | empty | Text after each window name, such as `:`. |
 | `@agent_bar_session_marker` | ` ▌ ` | Mark in front of a session name. |

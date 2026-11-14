@@ -94,9 +94,21 @@ glyph_idle="$(bar_option glyph_idle '·')"
 state_mark="#{?#{==:#{@agent_state},needs-input},#[fg=yellow bold]${glyph_needs_input},#{?#{==:#{@agent_state},error},#[fg=red bold]${glyph_error},#{?#{==:#{@agent_state},done},#[fg=green]${glyph_done},#{?#{==:#{@agent_state},subagent-running},#[fg=cyan]${glyph_subagent},#{?#{==:#{@agent_state},idle},#[fg=colour243]${glyph_idle},#[fg=cyan]${glyph_running}}}}}}"
 
 # Badge text after the glyph, strict precedence (SCHEMA.md): our rename
-# (@agent_name) -> the harness (@agent_app) -> nothing. Pane titles and
-# commands never render. Truncated at name_max.
-name_suffix="#{?#{@agent_name}, #{=${name_max}:@agent_name},#{?#{@agent_app}, #{@agent_app},}}"
+# (@agent_name) -> the pane title -> the harness (@agent_app) -> nothing.
+# Truncated at name_max.
+# The pane title is where an agent puts its session's name (Claude Code:
+# the generated title, or /rename). A leading status glyph ("✳ ") is
+# dropped. A program that sets no title leaves tmux's default, the host
+# name, which is no name at all. @agent_bar_title_names off skips titles.
+app_name='#{?#{@agent_app}, #{@agent_app},}'
+if [ "$(bar_option title_names on)" = "off" ]; then
+  unnamed="$app_name"
+else
+  has_title='#{&&:#{pane_title},#{&&:#{!=:#{pane_title},#{host}},#{!=:#{pane_title},#{host_short}}}}'
+  title="#{=${name_max}:#{s/^[^A-Za-z0-9 ]+ +//:pane_title}}"
+  unnamed="#{?${has_title}, ${title},${app_name}}"
+fi
+name_suffix="#{?#{@agent_name}, #{=${name_max}:@agent_name},${unnamed}}"
 
 # One glyph per agent pane, each led by the pane separator; any set state
 # renders — idle is a live agent waiting (dim). A glyph disappears only when
