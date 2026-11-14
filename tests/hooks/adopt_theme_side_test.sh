@@ -45,3 +45,27 @@ assert_eq "colour109" "$(tmux_t show -gv @agent_bar_accent)" "accent from status
 assert_eq "" "$(tmux_t show -gqv @agent_bar_status_bg)" "status bg is a status-line option"
 assert_contains "$out" 'set -g @agent_bar_style_window_active' "prints the window lines"
 assert_eq "left" "$(tmux_t show -gv side-status)" "the side bar is still up"
+
+# A status line whose colours live in its window formats, with a
+# status-style that names no background: the bar takes the inactive
+# window's colours.
+for style in none "fg=white,bg=default"; do
+  tmux_t set -g status-style "$style"
+  tmux_t set -gu side-status-style
+  out="$(bash "$ROOT_DIR/scripts/adopt-theme.sh")"
+  assert_eq "fg=colour254,bg=colour236" "$(tmux_t show -gv side-status-style)" "status-style $style: bar takes the window colours"
+  assert_contains "$out" 'set -g side-status-style "fg=colour254,bg=colour236"' "status-style $style: prints the conf line"
+done
+
+# Nothing to match anywhere: the bar's colours are left alone, and the
+# script says so.
+tmux_t setw -gu window-status-format
+tmux_t setw -gu window-status-current-format
+tmux_t set -gu status-left
+tmux_t set -g status-style none
+tmux_t set -g side-status-style "bg=colour52"
+if bash "$ROOT_DIR/scripts/adopt-theme.sh" >/dev/null 2>"$TEST_TMP/err"; then
+  fail "nothing to match should be an error"
+fi
+assert_file_contains "$TEST_TMP/err" "found nothing to match" "says why"
+assert_eq "bg=colour52" "$(tmux_t show -gv side-status-style)" "bar colours left alone"
